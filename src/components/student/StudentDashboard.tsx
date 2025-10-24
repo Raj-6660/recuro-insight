@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import SkillAnalysisTab from './SkillAnalysisTab';
-import CareerPathTab from './CareerPathTab';
+import ResumeUploadTab from './ResumeUploadTab';
 import LearningRoadmapTab from './LearningRoadmapTab';
 import { FaUserGraduate, FaSignOutAlt, FaChartBar, FaRoad, FaGraduationCap } from 'react-icons/fa';
 
@@ -49,9 +49,9 @@ const StudentDashboard = () => {
               <FaChartBar className="h-4 w-4" />
               <span className="hidden sm:inline">Skill Analysis</span>
             </TabsTrigger>
-            <TabsTrigger value="career" className="flex items-center gap-2">
+            <TabsTrigger value="resume" className="flex items-center gap-2">
               <FaRoad className="h-4 w-4" />
-              <span className="hidden sm:inline">Career Paths</span>
+              <span className="hidden sm:inline">Resume Matcher</span>
             </TabsTrigger>
             <TabsTrigger value="learning" className="flex items-center gap-2">
               <FaGraduationCap className="h-4 w-4" />
@@ -63,8 +63,8 @@ const StudentDashboard = () => {
             <SkillAnalysisTab />
           </TabsContent>
 
-          <TabsContent value="career">
-            <CareerPathTab />
+          <TabsContent value="resume">
+            <ResumeUploadTab />
           </TabsContent>
 
           <TabsContent value="learning">
