@@ -16,7 +16,7 @@ const CareerPathTab = () => {
   const [skillsInput, setSkillsInput] = useState('');
   const [filteredPaths, setFilteredPaths] = useState<CareerPath[]>([]);
   const [filterRole, setFilterRole] = useState('');
-  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('https://ghostr.app.n8n.cloud/webhook-test/382240e3-b2de-49e1-a60e-be8010ba93a5');
   const { toast } = useToast();
 
   const handleAnalyze = async () => {
