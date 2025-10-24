@@ -6,8 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import SkillAnalysisTab from './SkillAnalysisTab';
 import CareerPathTab from './CareerPathTab';
 import LearningRoadmapTab from './LearningRoadmapTab';
-import JobMarketTab from './JobMarketTab';
-import { FaUserGraduate, FaSignOutAlt, FaChartBar, FaRoad, FaGraduationCap, FaChartLine } from 'react-icons/fa';
+import { FaUserGraduate, FaSignOutAlt, FaChartBar, FaRoad, FaGraduationCap } from 'react-icons/fa';
 
 const StudentDashboard = () => {
   const { user, logout } = useAuth();
@@ -45,7 +44,7 @@ const StudentDashboard = () => {
         </div>
 
         <Tabs defaultValue="skills" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
             <TabsTrigger value="skills" className="flex items-center gap-2">
               <FaChartBar className="h-4 w-4" />
               <span className="hidden sm:inline">Skill Analysis</span>
@@ -57,10 +56,6 @@ const StudentDashboard = () => {
             <TabsTrigger value="learning" className="flex items-center gap-2">
               <FaGraduationCap className="h-4 w-4" />
               <span className="hidden sm:inline">Learning Roadmap</span>
-            </TabsTrigger>
-            <TabsTrigger value="market" className="flex items-center gap-2">
-              <FaChartLine className="h-4 w-4" />
-              <span className="hidden sm:inline">Job Market</span>
             </TabsTrigger>
           </TabsList>
 
@@ -74,10 +69,6 @@ const StudentDashboard = () => {
 
           <TabsContent value="learning">
             <LearningRoadmapTab />
-          </TabsContent>
-
-          <TabsContent value="market">
-            <JobMarketTab />
           </TabsContent>
         </Tabs>
       </main>

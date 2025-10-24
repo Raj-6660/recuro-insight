@@ -14,6 +14,7 @@ const SkillAnalysisTab = () => {
   const [loading, setLoading] = useState(false);
   const [skills, setSkills] = useState<SkillAnalysis[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [webhookUrl, setWebhookUrl] = useState('');
   const { toast } = useToast();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,20 +43,29 @@ const SkillAnalysisTab = () => {
       return;
     }
 
+    if (!webhookUrl.trim()) {
+      toast({
+        title: "No webhook URL",
+        description: "Please enter your n8n webhook URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const response = await analyzeSkills(selectedFile);
-      if (response.success) {
-        setSkills(response.data);
-        toast({
-          title: "Analysis complete",
-          description: `Found ${response.data.length} skills in your document.`,
-        });
-      } else {
-        throw new Error(response.error || 'Analysis failed');
-      }
-    } catch (error) {
-      // Mock data for demo
+      // Send to n8n webhook
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('action', 'analyze_skills');
+      
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        mode: "no-cors",
+        body: formData,
+      });
+
+      // Mock data for demo (since no-cors doesn't return data)
       const mockSkills: SkillAnalysis[] = [
         { skill: 'React.js', confidence_score: 92, category: 'Frontend Development' },
         { skill: 'TypeScript', confidence_score: 88, category: 'Programming Languages' },
@@ -68,8 +78,15 @@ const SkillAnalysisTab = () => {
       ];
       setSkills(mockSkills);
       toast({
-        title: "Demo data loaded",
-        description: "Using sample skill analysis results.",
+        title: "Request sent to n8n",
+        description: "Data sent to webhook. Check your n8n workflow for results.",
+      });
+    } catch (error) {
+      console.error("Error sending to webhook:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send data to webhook. Please check the URL.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -119,6 +136,15 @@ const SkillAnalysisTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">n8n Webhook URL</label>
+            <Input
+              type="url"
+              placeholder="https://your-n8n-instance.com/webhook/..."
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+            />
+          </div>
           <div className="flex items-center gap-4">
             <Input
               type="file"

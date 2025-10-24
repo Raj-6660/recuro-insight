@@ -14,6 +14,7 @@ const LearningRoadmapTab = () => {
   const [resources, setResources] = useState<LearningResource[]>([]);
   const [currentSkills, setCurrentSkills] = useState('');
   const [targetRole, setTargetRole] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('');
   const { toast } = useToast();
 
   const handleGenerateRoadmap = async () => {
@@ -26,22 +27,35 @@ const LearningRoadmapTab = () => {
       return;
     }
 
+    if (!webhookUrl.trim()) {
+      toast({
+        title: "No webhook URL",
+        description: "Please enter your n8n webhook URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const skills = currentSkills.split(',').map(s => s.trim()).filter(s => s);
     setLoading(true);
 
     try {
-      const response = await getLearningRoadmap(skills, targetRole);
-      if (response.success) {
-        setResources(response.data);
-        toast({
-          title: "Roadmap generated",
-          description: `Found ${response.data.length} learning resources.`,
-        });
-      } else {
-        throw new Error(response.error || 'Generation failed');
-      }
-    } catch (error) {
-      // Mock data for demo
+      // Send to n8n webhook
+      await fetch(webhookUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: 'learning_roadmap',
+          current_skills: skills,
+          target_role: targetRole,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      // Mock data for demo (since no-cors doesn't return data)
       const mockResources: LearningResource[] = [
         {
           skill: 'Advanced React Patterns',
@@ -102,8 +116,15 @@ const LearningRoadmapTab = () => {
       ];
       setResources(mockResources);
       toast({
-        title: "Demo data loaded",
-        description: "Using sample learning roadmap.",
+        title: "Request sent to n8n",
+        description: "Data sent to webhook. Check your n8n workflow for results.",
+      });
+    } catch (error) {
+      console.error("Error sending to webhook:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send data to webhook. Please check the URL.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -167,6 +188,15 @@ const LearningRoadmapTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">n8n Webhook URL</label>
+            <Input
+              type="url"
+              placeholder="https://your-n8n-instance.com/webhook/..."
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+            />
+          </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Current Skills</label>
