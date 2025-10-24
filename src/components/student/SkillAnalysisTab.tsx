@@ -11,7 +11,7 @@ import { analyzeSkills } from '@/services/api';
 import { FaUpload, FaDownload, FaFileAlt } from 'react-icons/fa';
 
 // Developer Configuration: Set your n8n webhook URL here
-const WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/skill-analysis';
+const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/382240e3-b2de-49e1-a60e-be8010ba93a5';
 
 const SkillAnalysisTab = () => {
   const [loading, setLoading] = useState(false);
