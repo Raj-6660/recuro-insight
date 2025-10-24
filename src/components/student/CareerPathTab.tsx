@@ -10,13 +10,15 @@ import { CareerPath } from '@/types/api';
 import { getCareerPath } from '@/services/api';
 import { FaSearch, FaDownload, FaRoad } from 'react-icons/fa';
 
+// Developer Configuration: Set your n8n webhook URL here
+const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/382240e3-b2de-49e1-a60e-be8010ba93a5';
+
 const CareerPathTab = () => {
   const [loading, setLoading] = useState(false);
   const [careerPaths, setCareerPaths] = useState<CareerPath[]>([]);
   const [skillsInput, setSkillsInput] = useState('');
   const [filteredPaths, setFilteredPaths] = useState<CareerPath[]>([]);
   const [filterRole, setFilterRole] = useState('');
-  const [webhookUrl, setWebhookUrl] = useState('https://ghostr.app.n8n.cloud/webhook-test/382240e3-b2de-49e1-a60e-be8010ba93a5');
   const { toast } = useToast();
 
   const handleAnalyze = async () => {
@@ -29,21 +31,12 @@ const CareerPathTab = () => {
       return;
     }
 
-    if (!webhookUrl.trim()) {
-      toast({
-        title: "No webhook URL",
-        description: "Please enter your n8n webhook URL.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const skills = skillsInput.split(',').map(s => s.trim()).filter(s => s);
     setLoading(true);
 
     try {
       // Send to n8n webhook
-      await fetch(webhookUrl, {
+      await fetch(WEBHOOK_URL, {
         method: "POST",
         mode: "no-cors",
         headers: {
@@ -172,15 +165,6 @@ const CareerPathTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">n8n Webhook URL</label>
-            <Input
-              type="url"
-              placeholder="https://your-n8n-instance.com/webhook/..."
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-            />
-          </div>
           <div className="flex gap-4">
             <Input
               placeholder="Enter your skills (e.g., React, Python, SQL, Machine Learning)"

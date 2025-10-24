@@ -9,12 +9,14 @@ import { LearningResource } from '@/types/api';
 import { getLearningRoadmap } from '@/services/api';
 import { FaGraduationCap, FaDownload, FaExternalLinkAlt } from 'react-icons/fa';
 
+// Developer Configuration: Set your n8n webhook URL here
+const WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/learning-roadmap';
+
 const LearningRoadmapTab = () => {
   const [loading, setLoading] = useState(false);
   const [resources, setResources] = useState<LearningResource[]>([]);
   const [currentSkills, setCurrentSkills] = useState('');
   const [targetRole, setTargetRole] = useState('');
-  const [webhookUrl, setWebhookUrl] = useState('');
   const { toast } = useToast();
 
   const handleGenerateRoadmap = async () => {
@@ -27,21 +29,12 @@ const LearningRoadmapTab = () => {
       return;
     }
 
-    if (!webhookUrl.trim()) {
-      toast({
-        title: "No webhook URL",
-        description: "Please enter your n8n webhook URL.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const skills = currentSkills.split(',').map(s => s.trim()).filter(s => s);
     setLoading(true);
 
     try {
       // Send to n8n webhook
-      await fetch(webhookUrl, {
+      await fetch(WEBHOOK_URL, {
         method: "POST",
         mode: "no-cors",
         headers: {
@@ -188,15 +181,6 @@ const LearningRoadmapTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">n8n Webhook URL</label>
-            <Input
-              type="url"
-              placeholder="https://your-n8n-instance.com/webhook/..."
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-            />
-          </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Current Skills</label>

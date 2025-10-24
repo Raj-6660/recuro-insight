@@ -10,11 +10,13 @@ import { SkillAnalysis } from '@/types/api';
 import { analyzeSkills } from '@/services/api';
 import { FaUpload, FaDownload, FaFileAlt } from 'react-icons/fa';
 
+// Developer Configuration: Set your n8n webhook URL here
+const WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/skill-analysis';
+
 const SkillAnalysisTab = () => {
   const [loading, setLoading] = useState(false);
   const [skills, setSkills] = useState<SkillAnalysis[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [webhookUrl, setWebhookUrl] = useState('');
   const { toast } = useToast();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,15 +45,6 @@ const SkillAnalysisTab = () => {
       return;
     }
 
-    if (!webhookUrl.trim()) {
-      toast({
-        title: "No webhook URL",
-        description: "Please enter your n8n webhook URL.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       // Send to n8n webhook
@@ -59,7 +52,7 @@ const SkillAnalysisTab = () => {
       formData.append('file', selectedFile);
       formData.append('action', 'analyze_skills');
       
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(WEBHOOK_URL, {
         method: "POST",
         mode: "no-cors",
         body: formData,
@@ -136,15 +129,6 @@ const SkillAnalysisTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">n8n Webhook URL</label>
-            <Input
-              type="url"
-              placeholder="https://your-n8n-instance.com/webhook/..."
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-            />
-          </div>
           <div className="flex items-center gap-4">
             <Input
               type="file"
