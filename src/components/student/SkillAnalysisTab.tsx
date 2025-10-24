@@ -6,8 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { SkillAnalysis } from '@/types/api';
-import { analyzeSkills } from '@/services/api';
 import { FaUpload, FaDownload, FaFileAlt } from 'react-icons/fa';
 
 // Developer Configuration: Set your n8n webhook URL here
@@ -15,14 +13,19 @@ const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/af6bd38f-6e02-4ba
 
 const SkillAnalysisTab = () => {
   const [loading, setLoading] = useState(false);
-  const [skills, setSkills] = useState<SkillAnalysis[]>([]);
+  const [candidates, setCandidates] = useState<any[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const allowedTypes = ['application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const allowedTypes = [
+        'application/pdf',
+        'text/plain',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
       if (allowedTypes.includes(file.type)) {
         setSelectedFile(file);
       } else {
@@ -47,38 +50,35 @@ const SkillAnalysisTab = () => {
 
     setLoading(true);
     try {
-      // Send to n8n webhook
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('action', 'analyze_skills');
       
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
-        mode: "no-cors",
         body: formData,
       });
 
-      // Mock data for demo (since no-cors doesn't return data)
-      const mockSkills: SkillAnalysis[] = [
-        { skill: 'React.js', confidence_score: 92, category: 'Frontend Development' },
-        { skill: 'TypeScript', confidence_score: 88, category: 'Programming Languages' },
-        { skill: 'Node.js', confidence_score: 85, category: 'Backend Development' },
-        { skill: 'Python', confidence_score: 78, category: 'Programming Languages' },
-        { skill: 'SQL', confidence_score: 82, category: 'Database' },
-        { skill: 'Machine Learning', confidence_score: 75, category: 'AI/ML' },
-        { skill: 'Git', confidence_score: 90, category: 'Version Control' },
-        { skill: 'AWS', confidence_score: 70, category: 'Cloud Computing' },
-      ];
-      setSkills(mockSkills);
-      toast({
-        title: "Request sent to n8n",
-        description: "Data sent to webhook. Check your n8n workflow for results.",
-      });
+      if (!response.ok) {
+        throw new Error("Webhook request failed");
+      }
+
+      const result = await response.json();
+
+      if (result.candidates && Array.isArray(result.candidates)) {
+        setCandidates(result.candidates);
+        toast({
+          title: "Analysis Complete",
+          description: "Candidate skill analysis received successfully.",
+        });
+      } else {
+        throw new Error("Invalid response format from n8n");
+      }
     } catch (error) {
       console.error("Error sending to webhook:", error);
       toast({
         title: "Error",
-        description: "Failed to send data to webhook. Please check the URL.",
+        description: "Failed to send data to webhook. Please check the URL or n8n configuration.",
         variant: "destructive",
       });
     } finally {
@@ -88,31 +88,37 @@ const SkillAnalysisTab = () => {
 
   const exportData = () => {
     const csv = [
-      ['Skill', 'Confidence Score', 'Category'],
-      ...skills.map(skill => [skill.skill, skill.confidence_score.toString(), skill.category])
-    ].map(row => row.join(',')).join('\n');
+      [
+        "Candidate Name",
+        "Core Technical Skills",
+        "Supporting Soft Skills",
+        "Skill Gaps / Improvement Areas",
+        "Suggested Career Paths",
+        "Career Growth Potential",
+        "Overall Skill Readiness (0–10)",
+        "Justification for Rating"
+      ],
+      ...candidates.map(c => [
+        c.candidate_name,
+        c.core_technical_skills,
+        c.supporting_soft_skills,
+        c.skill_gaps,
+        c.suggested_career_paths,
+        c.career_growth_potential,
+        c.overall_skill_readiness,
+        c.justification_for_rating
+      ])
+    ].map(row => row.join(",")).join("\n");
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'skill-analysis.csv';
+    a.download = "candidate-skill-analysis.csv";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
-
-  const getConfidenceColor = (score: number) => {
-    if (score >= 80) return 'bg-green-500';
-    if (score >= 60) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-
-  const getConfidenceBadge = (score: number) => {
-    if (score >= 80) return <Badge variant="default" className="bg-green-600">Expert</Badge>;
-    if (score >= 60) return <Badge variant="secondary">Intermediate</Badge>;
-    return <Badge variant="outline">Beginner</Badge>;
   };
 
   return (
@@ -160,13 +166,13 @@ const SkillAnalysisTab = () => {
       </Card>
 
       {/* Results Section */}
-      {skills.length > 0 && (
+      {candidates.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Skill Analysis Results</CardTitle>
+              <CardTitle>Candidate Skill Analysis</CardTitle>
               <CardDescription>
-                {skills.length} skills identified with confidence scores
+                {candidates.length} record{candidates.length > 1 ? 's' : ''} analyzed
               </CardDescription>
             </div>
             <Button onClick={exportData} variant="outline">
@@ -175,34 +181,31 @@ const SkillAnalysisTab = () => {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Skill</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Confidence Score</TableHead>
-                    <TableHead>Level</TableHead>
-                    <TableHead>Progress</TableHead>
+                    <TableHead>Candidate Name</TableHead>
+                    <TableHead>Core Technical Skills</TableHead>
+                    <TableHead>Supporting Soft Skills</TableHead>
+                    <TableHead>Skill Gaps / Improvement Areas</TableHead>
+                    <TableHead>Suggested Career Paths</TableHead>
+                    <TableHead>Career Growth Potential</TableHead>
+                    <TableHead>Overall Skill Readiness (0–10)</TableHead>
+                    <TableHead>Justification for Rating</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {skills.map((skill, index) => (
+                  {candidates.map((c, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-medium">{skill.skill}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{skill.category}</Badge>
-                      </TableCell>
-                      <TableCell>{skill.confidence_score}%</TableCell>
-                      <TableCell>{getConfidenceBadge(skill.confidence_score)}</TableCell>
-                      <TableCell>
-                        <div className="w-full">
-                          <Progress 
-                            value={skill.confidence_score} 
-                            className="h-2"
-                          />
-                        </div>
-                      </TableCell>
+                      <TableCell className="font-medium">{c.candidate_name}</TableCell>
+                      <TableCell>{c.core_technical_skills}</TableCell>
+                      <TableCell>{c.supporting_soft_skills}</TableCell>
+                      <TableCell>{c.skill_gaps}</TableCell>
+                      <TableCell>{c.suggested_career_paths}</TableCell>
+                      <TableCell>{c.career_growth_potential}</TableCell>
+                      <TableCell>{c.overall_skill_readiness}</TableCell>
+                      <TableCell>{c.justification_for_rating}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
