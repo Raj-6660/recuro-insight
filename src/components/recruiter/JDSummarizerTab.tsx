@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,16 +6,16 @@ import { useToast } from '@/hooks/use-toast';
 import { FileText, Upload, Download } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-// Developer Configuration: Set your n8n webhook URL here
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/4f5f82f6-8b82-449d-a4b0-057638d8adfd';
 
 const JDSummarizerTab = () => {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [summaries, setSummaries] = useState<any[]>([]);
+  const [jobId, setJobId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Handle file selection
+  // File selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -37,7 +37,7 @@ const JDSummarizerTab = () => {
     }
   };
 
-  // Handle file upload and analysis
+  // Upload & start analysis
   const handleAnalyze = async () => {
     if (!selectedFile) {
       toast({
@@ -57,42 +57,59 @@ const JDSummarizerTab = () => {
       formData.append('timestamp', new Date().toISOString());
       formData.append('action', 'jd_upload_and_analyze');
 
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Webhook request failed with status ${response.status}`);
-      }
+      // Initial request to start processing
+      const response = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(`Webhook request failed with status ${response.status}`);
 
       const result = await response.json();
-      console.log('Webhook response:', result);
+      // Expect backend to return a job ID immediately
+      if (!result.jobId) throw new Error("No jobId returned from webhook");
 
-      // FIX: Access the first element of the array returned by webhook
-      if (result[0]?.summaries && Array.isArray(result[0].summaries)) {
-        setSummaries(result[0].summaries);
-        toast({
-          title: 'Analysis Complete!',
-          description: `Successfully analyzed ${result[0].summaries.length} resume(s).`,
-        });
-      } else {
-        throw new Error("Invalid response format from n8n. Expected an array with 'summaries' key.");
-      }
+      setJobId(result.jobId);
+      toast({ title: 'Processing started', description: 'Analysis in progress...' });
 
     } catch (error: any) {
-      console.error('Error uploading/analyzing JD:', error);
+      console.error(error);
       toast({
-        title: 'Analysis failed',
-        description: `Failed to get analysis. ${error.message}`,
+        title: 'Failed to start analysis',
+        description: error.message,
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
 
-  // Export data to CSV
+  // Polling for results every 3 seconds
+  useEffect(() => {
+    if (!jobId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${WEBHOOK_URL}?jobId=${jobId}`);
+        if (!res.ok) throw new Error(`Failed to fetch job status: ${res.status}`);
+        const data = await res.json();
+
+        // Check if summaries are ready
+        if (data[0]?.summaries && Array.isArray(data[0].summaries)) {
+          setSummaries(data[0].summaries);
+          setLoading(false);
+          setJobId(null);
+          toast({
+            title: 'Analysis Complete!',
+            description: `Successfully analyzed ${data[0].summaries.length} resume(s).`,
+          });
+          clearInterval(interval);
+        }
+      } catch (err: any) {
+        console.error('Polling error:', err);
+        // Optionally show a toast for errors
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [jobId, toast]);
+
+  // Export CSV
   const exportData = () => {
     const headers = [
       "Date", "Resume", "First Name", "Last Name", "Email",
@@ -103,11 +120,7 @@ const JDSummarizerTab = () => {
     const csvRows = [
       headers.join(','),
       ...summaries.map(s => {
-        const safeCSV = (field: any) => {
-          const str = String(field || '').replace(/"/g, '""');
-          return `"${str}"`;
-        };
-
+        const safeCSV = (field: any) => `"${String(field || '').replace(/"/g, '""')}"`;
         return [
           safeCSV(s.date),
           safeCSV(s.resume),
@@ -147,7 +160,6 @@ const JDSummarizerTab = () => {
             Upload a job description (Word document) to process and analyze resumes.
           </CardDescription>
         </CardHeader>
-
         <CardContent className="space-y-6">
           <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 space-y-4">
             <Upload className="h-12 w-12 text-muted-foreground" />
@@ -225,7 +237,7 @@ const JDSummarizerTab = () => {
                       <TableCell>{s.email}</TableCell>
                       <TableCell className="font-medium text-center">{s.overall_fit}</TableCell>
                       <TableCell>{s.strengths}</TableCell>
-                      <TableCell>{s.weaksnesses}</TableCell>
+                      <TableCell>{s.weaknesses}</TableCell>
                       <TableCell>{s.risk_factor}</TableCell>
                       <TableCell>{s.reward_factor}</TableCell>
                       <TableCell>{s.justification}</TableCell>
