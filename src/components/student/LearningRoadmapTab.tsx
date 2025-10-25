@@ -15,76 +15,33 @@ import { Badge } from "@/components/ui/badge"; // Using Badge for duration
 // Developer Configuration: Set your n8n webhook URL here
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
-// --- Types for handling multiple n8n response formats ---
+// --- Types updated to match the NEW n8n JSON output ---
 
-interface RoadmapModule {
-  focus_area: string;
-  resources: string[];
+// NEW interface for the "focus_areas" object
+interface FocusArea {
+  name: string;
+  description: string;
 }
 
-// Normalized internal format
+// Interface for the "recommended_resources" object
+interface RoadmapResource {
+  name: string;
+  url: string;
+}
+
 interface RoadmapPhase {
-  phase: string;
+  phase: string; // Changed from 'title'
   expected_duration: string;
-  description?: string;
-  modules: RoadmapModule[];
+  focus_areas: FocusArea[]; // Changed from 'string[]'
+  recommended_resources: RoadmapResource[];
 }
 
 interface RoadmapOutput {
   overview: string;
   outcome: string;
-  roadmap: RoadmapPhase[];
+  roadmap: RoadmapPhase[]; // Changed from 'phases'
 }
-
-// Raw response formats from n8n
-interface RawPhaseFormat1 {
-  phase: string;
-  expected_duration: string;
-  description: string;
-  modules: RoadmapModule[];
-}
-
-interface RawPhaseFormat2 {
-  phase_title: string;
-  expected_duration: string;
-  focus_areas: string[];
-  recommended_resources: string[];
-}
-
-// Mapper function to normalize different formats
-const normalizeRoadmapPhase = (rawPhase: any): RoadmapPhase => {
-  // Check if it's Format 1 (has modules)
-  if (rawPhase.modules && Array.isArray(rawPhase.modules)) {
-    return {
-      phase: rawPhase.phase || rawPhase.phase_title || 'Untitled Phase',
-      expected_duration: rawPhase.expected_duration || 'N/A',
-      description: rawPhase.description,
-      modules: rawPhase.modules,
-    };
-  }
-  
-  // Format 2 (has focus_areas and recommended_resources as flat arrays)
-  if (rawPhase.focus_areas && rawPhase.recommended_resources) {
-    return {
-      phase: rawPhase.phase_title || rawPhase.phase || 'Untitled Phase',
-      expected_duration: rawPhase.expected_duration || 'N/A',
-      description: undefined,
-      modules: [{
-        focus_area: 'Key Focus Areas',
-        resources: [...rawPhase.focus_areas, ...rawPhase.recommended_resources],
-      }],
-    };
-  }
-  
-  // Fallback for unexpected format
-  return {
-    phase: rawPhase.phase_title || rawPhase.phase || 'Untitled Phase',
-    expected_duration: rawPhase.expected_duration || 'N/A',
-    description: rawPhase.description,
-    modules: [],
-  };
-};
-// --- End of Types and Mapper ---
+// --- End of Updated Types ---
 
 const LearningRoadmapTab = () => {
   const [loading, setLoading] = useState(false);
@@ -139,25 +96,17 @@ const LearningRoadmapTab = () => {
       const data = await response.json();
 
       // --- MODIFIED LINES TO FIX PARSING ---
-      // Check for the new response structure from n8n
+      // Check for the 'output' wrapper (no 'json' wrapper anymore)
       if (Array.isArray(data) && data.length > 0 && data[0].output) {
-        const rawOutput = data[0].output;
-        
-        // Normalize the roadmap phases using the mapper
-        const normalizedOutput: RoadmapOutput = {
-          overview: rawOutput.overview || 'Learning roadmap generated successfully.',
-          outcome: rawOutput.outcome || 'Complete this roadmap to achieve your career goals.',
-          roadmap: Array.isArray(rawOutput.roadmap) 
-            ? rawOutput.roadmap.map(normalizeRoadmapPhase)
-            : [],
-        };
-        
-        setRoadmapData(normalizedOutput);
+        // Access the 'output' object directly
+        const output = data[0].output as RoadmapOutput;
+        setRoadmapData(output);
         toast({
           title: "Learning Roadmap Generated",
-          description: "Your personalized learning roadmap is ready!",
+          description: "Received roadmap from n8n successfully.",
         });
       } else {
+        // Updated error message to reflect the expected structure
         throw new Error("Invalid response format from webhook. Expected [{ output: { ... } }]");
       }
       // --- END OF MODIFIED LINES ---
@@ -244,64 +193,79 @@ const LearningRoadmapTab = () => {
               <p className="text-sm text-secondary-foreground">{roadmapData.outcome}</p>
             </div>
 
-            {/* Roadmap Phases Section */}
+            {/* Phases Section */}
             <Accordion type="single" collapsible className="w-full" defaultValue="phase-0">
+              {/* Add safety check for 'roadmap' array itself */}
               {Array.isArray(roadmapData.roadmap) && roadmapData.roadmap.map((phase, phaseIndex) => (
                 <AccordionItem value={`phase-${phaseIndex}`} key={phase.phase || phaseIndex}>
                   <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4 items-center">
                       <span className="text-lg font-medium text-left">
+                        {/* Use new 'phase' key */}
                         {phase.phase}
                       </span>
-                      <Badge variant="outline" className="ml-4 whitespace-nowrap">
+                      <Badge variant="outline" className="ml-4 whitespace-nowGrap">
+                        {/* Use 'expected_duration' key */}
                         {phase.expected_duration}
                       </Badge>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4 space-y-6">
                     
-                    {/* Phase Description */}
-                    {phase.description && (
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {phase.description}
-                      </p>
-                    )}
+                    {/* --- MODIFIED FOCUS AREAS SECTION --- */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-base flex items-center">
+                        <FaListUl className="h-4 w-4 mr-2 text-primary" />
+                        Focus Areas
+                      </h4>
+                      {/* Render new object structure */}
+                      <ul className="list-disc list-inside pl-4 text-sm space-y-3 text-muted-foreground">
+                        {Array.isArray(phase.focus_areas) && phase.focus_areas.length > 0 ? (
+                          phase.focus_areas.map((area, areaIndex) => (
+                            <li key={areaIndex}>
+                              <strong className="text-primary-foreground">{area.name}:</strong> {area.description}
+                            </li>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground/70 list-none">No focus areas listed for this phase.</p>
+                        )}
+                      </ul>
+                    </div>
+                    {/* --- END OF MODIFIED SECTION --- */}
 
-                    {/* Modules Section */}
-                    {Array.isArray(phase.modules) && phase.modules.length > 0 && (
-                      <div className="space-y-5">
-                        {phase.modules.map((module, moduleIndex) => (
-                          <div key={moduleIndex} className="space-y-4">
-                            {module.focus_area !== 'Key Focus Areas' && (
-                              <div className="border-l-2 border-primary/30 pl-4">
-                                <h4 className="font-semibold text-base flex items-center mb-3">
-                                  <FaListUl className="h-4 w-4 mr-2 text-primary" />
-                                  {module.focus_area}
-                                </h4>
-                              </div>
-                            )}
-                            
-                            {/* Resources for this module */}
-                            {Array.isArray(module.resources) && module.resources.length > 0 && (
-                              <div className="space-y-3">
-                                <h5 className="text-sm font-semibold flex items-center">
-                                  <FaBook className="h-4 w-4 mr-2 text-primary" />
-                                  {module.focus_area === 'Key Focus Areas' ? 'Learning Path' : 'Recommended Resources'}
-                                </h5>
-                                <ul className="space-y-2.5 pl-1">
-                                  {module.resources.map((resource, resIndex) => (
-                                    <li key={resIndex} className="flex gap-3 text-sm text-muted-foreground">
-                                      <span className="text-primary mt-1.5">•</span>
-                                      <span className="flex-1">{resource}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+
+                    {/* --- RECOMMENDED RESOURCES SECTION (Logic is correct) --- */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-base flex items-center">
+                        <FaBook className="h-4 w-4 mr-2 text-primary" />
+                        Recommended Resources
+                      </h4>
+                      <div className="space-y-3">
+                        {/* Check if 'recommended_resources' array exists and has items. */}
+                        {Array.isArray(phase.recommended_resources) && phase.recommended_resources.length > 0 ? (
+                          // Map over the 'recommended_resources' array of objects
+                          <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
+                            {phase.recommended_resources.map((resource, resIndex) => (
+                              <li key={resIndex}>
+                                <a
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline inline-flex items-center"
+                                >
+                                  {resource.name}
+                                  <FaExternalLinkAlt className="h-3 w-3 ml-1.5" />
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          // Show a fallback message if no resources are provided
+                          <p className="pl-4 text-sm text-muted-foreground/70">No specific resources listed for this phase.</p>
+                        )}
                       </div>
-                    )}
+                    </div>
+                    {/* --- END OF SECTION --- */}
 
                   </AccordionContent>
                 </AccordionItem>
