@@ -18,9 +18,9 @@ const ResumeUploadTab = () => {
     if (file) {
       if (file.type !== 'application/pdf') {
         toast({
-          title: "Invalid file type",
-          description: "Please upload a PDF file.",
-          variant: "destructive",
+          title: 'Invalid file type',
+          description: 'Please upload a PDF file.',
+          variant: 'destructive',
         });
         return;
       }
@@ -31,9 +31,9 @@ const ResumeUploadTab = () => {
   const handleUpload = async () => {
     if (!selectedFile) {
       toast({
-        title: "No file selected",
-        description: "Please select a PDF resume to upload.",
-        variant: "destructive",
+        title: 'No file selected',
+        description: 'Please select a PDF resume to upload.',
+        variant: 'destructive',
       });
       return;
     }
@@ -41,38 +41,30 @@ const ResumeUploadTab = () => {
     setLoading(true);
 
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64data = reader.result as string;
-        
-        // Send to n8n webhook
-        await fetch(WEBHOOK_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: 'resume_upload',
-            filename: selectedFile.name,
-            filedata: base64data,
-            timestamp: new Date().toISOString(),
-          }),
-        });
+      // Prepare multipart/form-data to send actual binary
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('filename', selectedFile.name);
+      formData.append('timestamp', new Date().toISOString());
+      formData.append('action', 'resume_upload');
 
-        toast({
-          title: "Resume uploaded successfully!",
-          description: "Your resume has been sent for processing. We'll match you with suitable roles.",
-        });
-        setSelectedFile(null);
-      };
-      reader.readAsDataURL(selectedFile);
-    } catch (error) {
-      console.error("Error uploading resume:", error);
+      // Send binary file to n8n webhook
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        body: formData, // important: sends as multipart/form-data automatically
+      });
+
       toast({
-        title: "Upload failed",
-        description: "Failed to upload resume. Please try again.",
-        variant: "destructive",
+        title: 'Resume uploaded successfully!',
+        description: "Your resume has been sent for processing. We'll match you with suitable roles.",
+      });
+      setSelectedFile(null);
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload resume. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -88,19 +80,18 @@ const ResumeUploadTab = () => {
             Resume Matcher
           </CardTitle>
           <CardDescription>
-            Upload your resume to get shortlisted for suitable roles today
+            Upload your resume to get shortlisted for suitable roles today.
           </CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-6">
           <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 space-y-4">
             <FaUpload className="h-12 w-12 text-muted-foreground" />
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">
-                {selectedFile ? selectedFile.name : "Choose a PDF file or drag and drop"}
+                {selectedFile ? selectedFile.name : 'Choose a PDF file or drag and drop'}
               </p>
-              <p className="text-xs text-muted-foreground">
-                PDF up to 10MB
-              </p>
+              <p className="text-xs text-muted-foreground">PDF up to 10MB</p>
             </div>
             <Input
               type="file"
@@ -109,9 +100,9 @@ const ResumeUploadTab = () => {
               className="max-w-xs cursor-pointer"
             />
           </div>
-          
-          <Button 
-            onClick={handleUpload} 
+
+          <Button
+            onClick={handleUpload}
             disabled={loading || !selectedFile}
             className="w-full bg-student-gradient"
           >
