@@ -16,16 +16,13 @@ import { Badge } from "@/components/ui/badge"; // Using Badge for duration
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
 // --- Types updated to match the NEW n8n JSON output ---
-interface RoadmapResource {
-  name: string;
-  description: string;
-}
+// The 'RoadmapResource' interface is no longer needed as it's just a string array.
 
 interface RoadmapPhase {
   phase_title: string; // Changed from phase_name
   expected_duration: string;
   focus_areas: string[];
-  recommended_resources: RoadmapResource[]; // Now an array of objects
+  recommended_resources: string[]; // <-- This is the main fix: was RoadmapResource[]
 }
 
 interface RoadmapOutput {
@@ -87,11 +84,7 @@ const LearningRoadmapTab = () => {
 
       const data = await response.json();
 
-      // --- !! NEW DEBUGGING LINE !! ---
-      // Log the actual data to the console to see its structure
-      console.log('Received data from n8n:', JSON.stringify(data, null, 2));
-      // --- !! END OF DEBUGGING LINE !! ---
-
+      // Removed the console.log line
 
       // --- MODIFIED LINES TO FIX PARSING ---
       // Check for the 'json' wrapper from n8n
@@ -193,7 +186,8 @@ const LearningRoadmapTab = () => {
 
             {/* Phases Section */}
             <Accordion type="single" collapsible className="w-full" defaultValue="phase-0">
-              {roadmapData.roadmap.map((phase, phaseIndex) => (
+              {/* Add safety check for roadmap array itself */}
+              {Array.isArray(roadmapData.roadmap) && roadmapData.roadmap.map((phase, phaseIndex) => (
                 <AccordionItem value={`phase-${phaseIndex}`} key={phaseIndex}>
                   <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4 items-center">
@@ -208,35 +202,48 @@ const LearningRoadmapTab = () => {
                   </AccordionTrigger>
                   <AccordionContent className="pt-4 space-y-6">
                     
-                    {/* Focus Areas Section */}
+                    {/* --- MODIFIED FOCUS AREAS SECTION --- */}
                     <div className="space-y-3">
                       <h4 className="font-semibold text-base flex items-center">
                         <FaListUl className="h-4 w-4 mr-2 text-primary" />
                         Focus Areas
                       </h4>
                       <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
-                        {phase.focus_areas.map((area, areaIndex) => (
-                          <li key={areaIndex}>{area}</li>
-                        ))}
+                        {/* Add safety check for focus_areas array */}
+                        {Array.isArray(phase.focus_areas) && phase.focus_areas.length > 0 ? (
+                          phase.focus_areas.map((area, areaIndex) => (
+                            <li key={areaIndex}>{area}</li>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground/70">No focus areas listed for this phase.</p>
+                        )}
                       </ul>
                     </div>
+                    {/* --- END OF MODIFIED SECTION --- */}
 
-                    {/* Recommended Resources Section */}
+
+                    {/* --- MODIFIED RECOMMENDED RESOURCES SECTION --- */}
                     <div className="space-y-4">
                       <h4 className="font-semibold text-base flex items-center">
                         <FaBook className="h-4 w-4 mr-2 text-primary" />
                         Recommended Resources
                       </h4>
                       <div className="space-y-3">
-                        {/* Render resources as objects */}
-                        {phase.recommended_resources.map((resource, resIndex) => (
-                          <div key={resIndex} className="pl-4 text-sm">
-                            <strong className="block text-primary-foreground">{resource.name}</strong>
-                            <p className="text-muted-foreground">{resource.description}</p>
-                          </div>
-                        ))}
+                        {/* Check if recommended_resources exists AND is an array AND has items. */}
+                        {Array.isArray(phase.recommended_resources) && phase.recommended_resources.length > 0 ? (
+                          // Render as a list of strings
+                          <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
+                            {phase.recommended_resources.map((resource, resIndex) => (
+                              <li key={resIndex}>{resource}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          // Show a fallback message if no resources are provided
+                          <p className="pl-4 text-sm text-muted-foreground/70">No specific resources listed for this phase.</p>
+                        )}
                       </div>
                     </div>
+                    {/* --- END OF MODIFIED SECTION --- */}
 
                   </AccordionContent>
                 </AccordionItem>
@@ -251,3 +258,4 @@ const LearningRoadmapTab = () => {
 };
 
 export default LearningRoadmapTab;
+
