@@ -3,9 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import JDSummarizerTab from './JDSummarizerTab';
-import CVParserTab from './CVParserTab';
 import MatchScorerTab from './MatchScorerTab';
-import { FaBuilding, FaSignOutAlt, FaFileAlt, FaUser, FaSearch, FaCalendarAlt } from 'react-icons/fa';
+import { FaBuilding, FaSignOutAlt, FaFileAlt, FaSearch } from 'react-icons/fa';
 
 const RecruiterDashboard = () => {
   const { user, logout } = useAuth();
@@ -43,14 +42,10 @@ const RecruiterDashboard = () => {
         </div>
 
         <Tabs defaultValue="jd-analyzer" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-flex">
             <TabsTrigger value="jd-analyzer" className="flex items-center gap-2">
               <FaFileAlt className="h-4 w-4" />
-              <span className="hidden sm:inline">JD Summarizer</span>
-            </TabsTrigger>
-            <TabsTrigger value="cv-parser" className="flex items-center gap-2">
-              <FaUser className="h-4 w-4" />
-              <span className="hidden sm:inline">CV Parser</span>
+              <span className="hidden sm:inline">JD Uploader</span>
             </TabsTrigger>
             <TabsTrigger value="match-scorer" className="flex items-center gap-2">
               <FaSearch className="h-4 w-4" />
@@ -60,10 +55,6 @@ const RecruiterDashboard = () => {
 
           <TabsContent value="jd-analyzer">
             <JDSummarizerTab />
-          </TabsContent>
-
-          <TabsContent value="cv-parser">
-            <CVParserTab />
           </TabsContent>
 
           <TabsContent value="match-scorer">
