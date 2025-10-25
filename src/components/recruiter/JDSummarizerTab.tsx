@@ -13,6 +13,7 @@ const JDSummarizerTab = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
+  // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -32,6 +33,7 @@ const JDSummarizerTab = () => {
     }
   };
 
+  // Handle file upload
   const handleUpload = async () => {
     if (!selectedFile) {
       toast({
@@ -51,8 +53,10 @@ const JDSummarizerTab = () => {
       formData.append('timestamp', new Date().toISOString());
       formData.append('action', 'jd_upload');
 
+      // Send binary file to n8n webhook
       await fetch(WEBHOOK_URL, {
         method: 'POST',
+        mode: 'no-cors', // ✅ ensures CORS doesn't block the request
         body: formData,
       });
 
@@ -60,6 +64,7 @@ const JDSummarizerTab = () => {
         title: 'JD uploaded successfully!',
         description: 'Your job description has been sent for processing.',
       });
+
       setSelectedFile(null);
     } catch (error) {
       console.error('Error uploading JD:', error);
@@ -81,11 +86,12 @@ const JDSummarizerTab = () => {
           Job Description Uploader
         </CardTitle>
         <CardDescription>
-          Upload a job description (Word document) to process it
+          Upload a job description (Word document) to process it.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Upload Box */}
         <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 space-y-4">
           <FaUpload className="h-12 w-12 text-muted-foreground" />
           <div className="text-center space-y-2">
@@ -102,6 +108,7 @@ const JDSummarizerTab = () => {
           />
         </div>
 
+        {/* Upload Button */}
         <Button
           onClick={handleUpload}
           disabled={loading || !selectedFile}
@@ -115,3 +122,4 @@ const JDSummarizerTab = () => {
 };
 
 export default JDSummarizerTab;
+
