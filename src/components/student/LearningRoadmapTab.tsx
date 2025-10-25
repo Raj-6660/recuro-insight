@@ -16,13 +16,19 @@ import { Badge } from "@/components/ui/badge"; // Using Badge for duration
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
 // --- Types updated to match the NEW n8n JSON output ---
-// The 'RoadmapResource' interface is no longer needed as it's just a string array.
+
+// NEW interface for the nested "resources" object
+interface RoadmapResourceArea {
+  area: string;
+  recommendations: string[];
+}
 
 interface RoadmapPhase {
-  phase_title: string; // Changed from phase_name
-  expected_duration: string;
+  title: string; // Changed from phase_title
+  phase: string;
+  duration: string; // Changed from expected_duration
   focus_areas: string[];
-  recommended_resources: string[]; // <-- This is the main fix: was RoadmapResource[]
+  resources: RoadmapResourceArea[]; // Changed from recommended_resources: string[]
 }
 
 interface RoadmapOutput {
@@ -103,7 +109,7 @@ const LearningRoadmapTab = () => {
       // --- END OF MODIFIED LINES ---
 
     } catch (error: any) {
-      // --- Handle Timeout Error ---
+      // --- Handle TimeoutError ---
       if (error.name === 'AbortError') {
         toast({
           title: "Request Timed Out",
@@ -192,11 +198,12 @@ const LearningRoadmapTab = () => {
                   <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4 items-center">
                       <span className="text-lg font-medium text-left">
-                        {/* Use phase_title */}
-                        {phase.phase_title}
+                        {/* Use new 'title' key */}
+                        {phase.title}
                       </span>
-                      <Badge variant="outline" className="ml-4 whitespace-nowrap">
-                        {phase.expected_duration}
+                      <Badge variant="outline" className="ml-4 whitespace-nowGrap">
+                        {/* Use new 'duration' key */}
+                        {phase.duration}
                       </Badge>
                     </div>
                   </AccordionTrigger>
@@ -229,14 +236,25 @@ const LearningRoadmapTab = () => {
                         Recommended Resources
                       </h4>
                       <div className="space-y-3">
-                        {/* Check if recommended_resources exists AND is an array AND has items. */}
-                        {Array.isArray(phase.recommended_resources) && phase.recommended_resources.length > 0 ? (
-                          // Render as a list of strings
-                          <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
-                            {phase.recommended_resources.map((resource, resIndex) => (
-                              <li key={resIndex}>{resource}</li>
-                            ))}
-                          </ul>
+                        {/* Check if 'resources' array exists and has items. */}
+                        {Array.isArray(phase.resources) && phase.resources.length > 0 ? (
+                          // Map over the new 'resources' array of objects
+                          phase.resources.map((resourceArea, resIndex) => (
+                            <div key={resIndex} className="pl-4 text-sm">
+                              {/* Display the 'area' as a sub-heading */}
+                              <strong className="block text-primary-foreground">{resourceArea.area}</strong>
+                              {/* Now map the 'recommendations' array (which is strings) */}
+                              <ul className="list-disc list-inside pl-2 text-muted-foreground space-y-1 mt-1">
+                                {Array.isArray(resourceArea.recommendations) && resourceArea.recommendations.length > 0 ? (
+                                  resourceArea.recommendations.map((rec, recIndex) => (
+                                    <li key={recIndex}>{rec}</li>
+                                  ))
+                                ) : (
+                                  <li className="list-none italic">No recommendations for this area.</li>
+                                )}
+                              </ul>
+                            </div>
+                          ))
                         ) : (
                           // Show a fallback message if no resources are provided
                           <p className="pl-4 text-sm text-muted-foreground/70">No specific resources listed for this phase.</p>
