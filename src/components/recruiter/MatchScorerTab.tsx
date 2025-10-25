@@ -9,7 +9,7 @@ const MatchScorerTab = () => {
   const { toast } = useToast();
 
   // ✅ Replace this with your actual n8n webhook URL
-  const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/739ce57c-428e-4773-8872-f64f5c56bb99';
+  const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/382240e3-b2de-49e1-a60e-be8010ba93a5';
 
   const handleTrigger = async () => {
     setLoading(true);
