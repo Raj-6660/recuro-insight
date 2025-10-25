@@ -111,7 +111,7 @@ const LearningRoadmapTab = () => {
           <CardHeader>
             <CardTitle>Your Learning Roadmap</CardTitle>
             <CardDescription>{roadmapData.overview}</CardDescription>
-          </G
+          </CardHeader> {/* <-- Fixed the typo here */}
           <CardContent className="space-y-6">
             <div className="p-4 bg-secondary/50 rounded-lg">
               <h3 className="text-lg font-semibold mb-2 flex items-center">
@@ -127,7 +127,7 @@ const LearningRoadmapTab = () => {
                   <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4 items-center">
                       <span className="text-lg font-medium text-left">{phase.phase}</span>
-                      <Badge variant="outline" className="ml-4 whitespace-nowrap">{phase.expected_duration}</Badge>
+                      <Badge variant="outline" className="ml-4 whitespace-nowGrap">{phase.expected_duration}</Badge>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4 space-y-6">
@@ -175,6 +175,8 @@ const LearningRoadmapTab = () => {
 };
 
 export default LearningRoadmapTab;
+
+
 
 
 
