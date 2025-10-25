@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { FaGraduationCap, FaDownload } from 'react-icons/fa';
 
-// 🔗 Your n8n webhook URL
+// 🔗 Your existing webhook URL
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
+// 🔹 Interface definitions
 interface RoadmapPhase {
   phase: number;
   title: string;
@@ -29,25 +30,27 @@ const LearningRoadmapTab = () => {
   const [roadmapData, setRoadmapData] = useState<RoadmapData | null>(null);
   const { toast } = useToast();
 
-  // 🚀 Generate Roadmap
+  // ✅ Send to Webhook (no-cors mode unchanged)
   const handleGenerateRoadmap = async () => {
     if (!currentSkills.trim() || !targetRole.trim()) {
       toast({
-        title: "Missing information",
-        description: "Please provide both your current skills and target role.",
-        variant: "destructive",
+        title: 'Missing information',
+        description: 'Please provide both your current skills and target role.',
+        variant: 'destructive',
       });
       return;
     }
 
-    const skills = currentSkills.split(',').map(s => s.trim()).filter(s => s);
+    const skills = currentSkills.split(',').map((s) => s.trim()).filter((s) => s);
     setLoading(true);
 
     try {
-      // Send request to webhook
-      const response = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        mode: 'no-cors', // keep this unchanged
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           action: 'learning_roadmap',
           current_skills: skills,
@@ -56,66 +59,64 @@ const LearningRoadmapTab = () => {
         }),
       });
 
-      // Parse response (from n8n “Respond to Webhook” node)
-      const data = await response.json();
-
-      // Ensure the structure matches what we expect
-      if (data?.output?.roadmap) {
-        setRoadmapData(data.output);
-        toast({
-          title: "Roadmap generated successfully",
-          description: "Your personalized learning roadmap is ready!",
-        });
-      } else {
-        throw new Error("Invalid response format from webhook");
-      }
-
-    } catch (error) {
-      console.error("Error sending to webhook:", error);
       toast({
-        title: "Error",
-        description: "Failed to generate roadmap. Check your webhook or workflow.",
-        variant: "destructive",
+        title: 'Request sent to n8n',
+        description: 'Data sent successfully. Waiting for AI roadmap...',
+      });
+    } catch (error) {
+      console.error('Error sending to webhook:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send data to webhook.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // 📝 Export Roadmap to Word Document
+  // ✅ Listen for response from Respond to Webhook node
+  useEffect(() => {
+    const eventSource = new EventSource(`${WEBHOOK_URL}/stream`);
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data?.output?.roadmap) {
+          setRoadmapData(data.output);
+          toast({
+            title: 'Roadmap Received',
+            description: 'AI-generated roadmap successfully loaded!',
+          });
+        }
+      } catch (err) {
+        console.error('Invalid JSON from webhook:', err);
+      }
+    };
+    return () => eventSource.close();
+  }, []);
+
+  // 📝 Export as Word (.doc)
   const exportData = () => {
     if (!roadmapData) return;
 
     let content = `Learning Roadmap Report\n\n`;
-    content += `Overview:\n${roadmapData.overview || "N/A"}\n\n`;
+    content += `Overview:\n${roadmapData.overview}\n\n`;
 
     roadmapData.roadmap.forEach((phase) => {
       content += `Phase ${phase.phase}: ${phase.title}\n`;
-      content += `Duration: ${phase.expected_duration || "N/A"}\n\n`;
-
-      content += `Focus Areas:\n`;
-      (phase.focus_areas || []).forEach((a) => {
-        content += `• ${a}\n`;
-      });
-      content += `\n`;
-
-      content += `Recommended Resources:\n`;
-      (phase.recommended_resources || []).forEach((r) => {
-        content += `• ${r}\n`;
-      });
-      content += `\n----------------------------------------\n\n`;
+      content += `Duration: ${phase.expected_duration}\n\n`;
+      content += `Focus Areas:\n${phase.focus_areas.map((a) => '• ' + a).join('\n')}\n\n`;
+      content += `Recommended Resources:\n${phase.recommended_resources.map((r) => '• ' + r).join('\n')}\n\n`;
+      content += '----------------------------------------\n\n';
     });
 
-    content += `Expected Outcome:\n${roadmapData.outcome || "N/A"}\n`;
+    content += `Outcome:\n${roadmapData.outcome}\n`;
 
-    const blob = new Blob(["\ufeff", content], {
-      type: "application/msword",
-    });
-
+    const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = "Learning_Roadmap_Report.doc";
+    a.download = 'Learning_Roadmap_Report.doc';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -132,7 +133,7 @@ const LearningRoadmapTab = () => {
             Learning Roadmap Generator
           </CardTitle>
           <CardDescription>
-            Get personalized learning recommendations based on your current skills and career goals
+            Get personalized learning recommendations based on your current skills and career goals.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -154,8 +155,8 @@ const LearningRoadmapTab = () => {
               />
             </div>
           </div>
-          <Button 
-            onClick={handleGenerateRoadmap} 
+          <Button
+            onClick={handleGenerateRoadmap}
             disabled={loading}
             className="bg-student-gradient w-full md:w-auto"
           >
@@ -181,30 +182,43 @@ const LearningRoadmapTab = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <p className="text-gray-700 text-base"><strong>Overview:</strong> {roadmapData.overview}</p>
+              <p className="text-gray-700 text-base">
+                <strong>Overview:</strong> {roadmapData.overview}
+              </p>
               {roadmapData.roadmap.map((phase, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                <div
+                  key={index}
+                  className="border border-gray-200 rounded-lg p-4 shadow-sm"
+                >
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">
                     Phase {phase.phase}: {phase.title}
                   </h3>
-                  <p className="text-sm mb-2"><strong>Duration:</strong> {phase.expected_duration}</p>
+                  <p className="text-sm mb-2">
+                    <strong>Duration:</strong> {phase.expected_duration}
+                  </p>
 
                   <div className="mb-2">
                     <strong>Focus Areas:</strong>
                     <ul className="list-disc ml-6 text-sm text-gray-700">
-                      {phase.focus_areas.map((area, i) => <li key={i}>{area}</li>)}
+                      {phase.focus_areas.map((area, i) => (
+                        <li key={i}>{area}</li>
+                      ))}
                     </ul>
                   </div>
 
                   <div>
                     <strong>Recommended Resources:</strong>
                     <ul className="list-disc ml-6 text-sm text-gray-700">
-                      {phase.recommended_resources.map((res, i) => <li key={i}>{res}</li>)}
+                      {phase.recommended_resources.map((res, i) => (
+                        <li key={i}>{res}</li>
+                      ))}
                     </ul>
                   </div>
                 </div>
               ))}
-              <p className="text-gray-700 text-base"><strong>Outcome:</strong> {roadmapData.outcome}</p>
+              <p className="text-gray-700 text-base">
+                <strong>Outcome:</strong> {roadmapData.outcome}
+              </p>
             </div>
           </CardContent>
         </Card>
