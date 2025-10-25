@@ -10,7 +10,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge"; // Using Badge for duration
+import { Badge } from "@/components/ui/badge";
 
 // Developer Configuration: Set your n8n webhook URL here
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
@@ -18,7 +18,6 @@ const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d
 // --- Types for frontend ---
 interface FocusArea {
   name: string;
-  description: string;
 }
 
 interface RoadmapResource {
@@ -62,7 +61,7 @@ const LearningRoadmapTab = () => {
     setRoadmapData(null);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
 
     try {
       const response = await fetch(WEBHOOK_URL, {
@@ -79,44 +78,21 @@ const LearningRoadmapTab = () => {
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
 
       if (Array.isArray(data) && data.length > 0 && data[0].output) {
         const rawOutput = data[0].output;
 
-        // Transform phases to match frontend expectations
-        const transformedRoadmap: RoadmapPhase[] = rawOutput.phases.map((phase: any) => ({
-          phase: phase.title,
-          expected_duration: phase.duration,
-          focus_areas: (phase.focus_areas || []).map((f: string) => {
-            const [name, ...descParts] = f.split(':');
-            return {
-              name: name ? name.trim() : f,
-              description: descParts.join(':').trim() || '',
-            };
-          }),
-          recommended_resources: (phase.recommended_resources || []).map((r: string) => ({
-            name: r,
-            url: '#', // fallback, you can add real URLs if available
-          })),
-        }));
-
-        setRoadmapData({
-          overview: rawOutput.overview,
-          outcome: rawOutput.outcome,
-          roadmap: transformedRoadmap,
-        });
+        // Use the normalized structure directly
+        setRoadmapData(rawOutput);
 
         toast({
           title: "Learning Roadmap Generated",
           description: "Received roadmap from n8n successfully.",
         });
       } else {
-        throw new Error("Invalid response format from webhook. Expected [{ output: { ... } }]");
+        throw new Error("Invalid response format from webhook.");
       }
 
     } catch (error: any) {
@@ -217,12 +193,10 @@ const LearningRoadmapTab = () => {
                         <FaListUl className="h-4 w-4 mr-2 text-primary" />
                         Focus Areas
                       </h4>
-                      <ul className="list-disc list-inside pl-4 text-sm space-y-3 text-muted-foreground">
+                      <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
                         {phase.focus_areas.length > 0 ? (
                           phase.focus_areas.map((area, areaIndex) => (
-                            <li key={areaIndex}>
-                              <strong className="text-primary-foreground">{area.name}:</strong> {area.description}
-                            </li>
+                            <li key={areaIndex}>{area.name}</li>
                           ))
                         ) : (
                           <p className="text-sm text-muted-foreground/70 list-none">No focus areas listed for this phase.</p>
@@ -236,27 +210,24 @@ const LearningRoadmapTab = () => {
                         <FaBook className="h-4 w-4 mr-2 text-primary" />
                         Recommended Resources
                       </h4>
-                      <div className="space-y-3">
+                      <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
                         {phase.recommended_resources.length > 0 ? (
-                          <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
-                            {phase.recommended_resources.map((resource, resIndex) => (
-                              <li key={resIndex}>
-                                <a
-                                  href={resource.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary hover:underline inline-flex items-center"
-                                >
-                                  {resource.name}
-                                  <FaExternalLinkAlt className="h-3 w-3 ml-1.5" />
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
+                          phase.recommended_resources.map((resource, resIndex) => (
+                            <li key={resIndex}>
+                              <a
+                                href={resource.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline inline-flex items-center"
+                              >
+                                {resource.name} <FaExternalLinkAlt className="h-3 w-3 ml-1.5" />
+                              </a>
+                            </li>
+                          ))
                         ) : (
                           <p className="pl-4 text-sm text-muted-foreground/70">No specific resources listed for this phase.</p>
                         )}
-                      </div>
+                      </ul>
                     </div>
 
                   </AccordionContent>
