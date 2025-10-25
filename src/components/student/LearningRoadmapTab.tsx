@@ -10,7 +10,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge"; // Using Badge for duration
 
 // Developer Configuration: Set your n8n webhook URL here
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
@@ -61,7 +61,7 @@ const LearningRoadmapTab = () => {
     setRoadmapData(null);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000);
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
 
     try {
       const response = await fetch(WEBHOOK_URL, {
@@ -78,21 +78,48 @@ const LearningRoadmapTab = () => {
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (Array.isArray(data) && data.length > 0 && data[0].output) {
         const rawOutput = data[0].output;
 
-        // Use the normalized structure directly
-        setRoadmapData(rawOutput);
+        // Normalize recommended_resources
+        const normalizedRoadmap: RoadmapPhase[] = rawOutput.roadmap.map((phase: any) => ({
+          phase: phase.phase || "Untitled Phase",
+          expected_duration: phase.expected_duration || "N/A",
+          focus_areas: (phase.focus_areas || []).map((f: any) => ({
+            name: f.name || f,
+          })),
+          recommended_resources: (phase.recommended_resources || []).map((r: any) => {
+            if (r.name && typeof r.name === 'object') {
+              return {
+                name: r.name.name || "Resource",
+                url: r.name.url || '#',
+              };
+            }
+            return {
+              name: r.name || 'Resource',
+              url: r.url || '#',
+            };
+          }),
+        }));
+
+        setRoadmapData({
+          overview: rawOutput.overview,
+          outcome: rawOutput.outcome,
+          roadmap: normalizedRoadmap,
+        });
 
         toast({
           title: "Learning Roadmap Generated",
           description: "Received roadmap from n8n successfully.",
         });
       } else {
-        throw new Error("Invalid response format from webhook.");
+        throw new Error("Invalid response format from webhook. Expected [{ output: { ... } }]");
       }
 
     } catch (error: any) {
@@ -193,7 +220,7 @@ const LearningRoadmapTab = () => {
                         <FaListUl className="h-4 w-4 mr-2 text-primary" />
                         Focus Areas
                       </h4>
-                      <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
+                      <ul className="list-disc list-inside pl-4 text-sm space-y-3 text-muted-foreground">
                         {phase.focus_areas.length > 0 ? (
                           phase.focus_areas.map((area, areaIndex) => (
                             <li key={areaIndex}>{area.name}</li>
@@ -210,24 +237,27 @@ const LearningRoadmapTab = () => {
                         <FaBook className="h-4 w-4 mr-2 text-primary" />
                         Recommended Resources
                       </h4>
-                      <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
+                      <div className="space-y-3">
                         {phase.recommended_resources.length > 0 ? (
-                          phase.recommended_resources.map((resource, resIndex) => (
-                            <li key={resIndex}>
-                              <a
-                                href={resource.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline inline-flex items-center"
-                              >
-                                {resource.name} <FaExternalLinkAlt className="h-3 w-3 ml-1.5" />
-                              </a>
-                            </li>
-                          ))
+                          <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
+                            {phase.recommended_resources.map((resource, resIndex) => (
+                              <li key={resIndex}>
+                                <a
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline inline-flex items-center"
+                                >
+                                  {resource.name}
+                                  <FaExternalLinkAlt className="h-3 w-3 ml-1.5" />
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
                         ) : (
                           <p className="pl-4 text-sm text-muted-foreground/70">No specific resources listed for this phase.</p>
                         )}
-                      </ul>
+                      </div>
                     </div>
 
                   </AccordionContent>
@@ -243,4 +273,5 @@ const LearningRoadmapTab = () => {
 };
 
 export default LearningRoadmapTab;
+
 
