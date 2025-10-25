@@ -1,19 +1,45 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { LearningResource } from '@/types/api';
-import { FaGraduationCap, FaDownload, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaGraduationCap } from 'react-icons/fa';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 // Developer Configuration: Set your n8n webhook URL here
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
+// --- New Types to match the n8n JSON output ---
+interface RoadmapModule {
+  focus_area: string;
+  topics: string[];
+  resources: string[];
+}
+
+interface RoadmapPhase {
+  phase_name: string;
+  phase_description: string;
+  expected_duration: string;
+  modules: RoadmapModule[];
+}
+
+interface RoadmapOutput {
+  overview: string;
+  outcome: string;
+  roadmap: RoadmapPhase[];
+  timestamp: string;
+}
+// --- End of New Types ---
+
 const LearningRoadmapTab = () => {
   const [loading, setLoading] = useState(false);
-  const [resources, setResources] = useState<LearningResource[]>([]);
+  // State updated to hold the new data structure
+  const [roadmapData, setRoadmapData] = useState<RoadmapOutput | null>(null);
   const [currentSkills, setCurrentSkills] = useState('');
   const [targetRole, setTargetRole] = useState('');
   const { toast } = useToast();
@@ -30,6 +56,7 @@ const LearningRoadmapTab = () => {
 
     const skills = currentSkills.split(',').map(s => s.trim()).filter(s => s);
     setLoading(true);
+    setRoadmapData(null); // Clear previous results
 
     try {
       // Send to n8n webhook and wait for roadmap response
@@ -52,18 +79,20 @@ const LearningRoadmapTab = () => {
 
       const data = await response.json();
 
-      // Expecting n8n Respond to Webhook node to send JSON like:
-      // { "roadmap": [ { "skill": "...", "resource": "...", "priority": "...", "type": "...", "url": "..." }, ... ] }
-
-      if (data.roadmap && Array.isArray(data.roadmap)) {
-        setResources(data.roadmap);
+      // --- Updated response handling ---
+      // n8n function node outputs an array, we expect [ { success: true, output: { ... } } ]
+      if (Array.isArray(data) && data.length > 0 && data[0].success && data[0].output) {
+        const output = data[0].output as RoadmapOutput;
+        setRoadmapData(output); // Set the new state
         toast({
           title: "Learning Roadmap Generated",
           description: "Received roadmap from n8n successfully.",
         });
       } else {
-        throw new Error("Invalid response format from webhook");
+        throw new Error("Invalid response format from webhook. Expected [{ success: true, output: { ... } }]");
       }
+      // --- End of updated response handling ---
+
     } catch (error) {
       console.error("Error sending to webhook:", error);
       toast({
@@ -76,52 +105,11 @@ const LearningRoadmapTab = () => {
     }
   };
 
-  const exportData = () => {
-    const csv = [
-      ['Skill', 'Resource', 'Priority', 'Type', 'URL'],
-      ...resources.map(resource => [
-        resource.skill,
-        resource.resource,
-        resource.priority,
-        resource.type,
-        resource.url || ''
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'learning-roadmap.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const getPriorityBadge = (priority: 'High' | 'Medium' | 'Low') => {
-    const variants = {
-      High: { className: "bg-red-600", text: "High Priority" },
-      Medium: { className: "bg-yellow-600", text: "Medium Priority" },
-      Low: { className: "bg-green-600", text: "Low Priority" }
-    };
-    const variant = variants[priority];
-    return <Badge className={variant.className}>{variant.text}</Badge>;
-  };
-
-  const getTypeBadge = (type: 'Course' | 'Certification' | 'Project' | 'Book') => {
-    const variants = {
-      Course: "default",
-      Certification: "secondary",
-      Project: "outline",
-      Book: "outline"
-    } as const;
-    return <Badge variant={variants[type]}>{type}</Badge>;
-  };
+  // Obsolete functions (exportData, getPriorityBadge, getTypeBadge) have been removed.
 
   return (
     <div className="space-y-6">
-      {/* Input Section */}
+      {/* Input Section (Unchanged) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -161,61 +149,67 @@ const LearningRoadmapTab = () => {
         </CardContent>
       </Card>
 
-      {/* Results Section */}
-      {resources.length > 0 && (
+      {/* --- New Results Section --- */}
+      {roadmapData && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Your Learning Roadmap</CardTitle>
-              <CardDescription>
-                {resources.length} recommended resources to reach your goal
-              </CardDescription>
-            </div>
-            <Button onClick={exportData} variant="outline">
-              <FaDownload className="mr-2 h-4 w-4" />
-              Export
-            </Button>
+          <CardHeader>
+            <CardTitle>Your Learning Roadmap</CardTitle>
+            <CardDescription>
+              {roadmapData.overview}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Skill to Learn</TableHead>
-                    <TableHead>Resource</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {resources.map((resource, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{resource.skill}</TableCell>
-                      <TableCell>{resource.resource}</TableCell>
-                      <TableCell>{getPriorityBadge(resource.priority as 'High' | 'Medium' | 'Low')}</TableCell>
-                      <TableCell>{getTypeBadge(resource.type as 'Course' | 'Certification' | 'Project' | 'Book')}</TableCell>
-                      <TableCell>
-                        {resource.url ? (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => window.open(resource.url, '_blank')}
-                          >
-                            <FaExternalLinkAlt className="h-3 w-3" />
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">N/A</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          <CardContent className="space-y-6">
+            {/* Outcome Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Expected Outcome</h3>
+              <p className="text-sm text-muted-foreground">{roadmapData.outcome}</p>
             </div>
+
+            {/* Phases Section */}
+            <Accordion type="single" collapsible className="w-full" defaultValue="phase-0">
+              {roadmapData.roadmap.map((phase, phaseIndex) => (
+                <AccordionItem value={`phase-${phaseIndex}`} key={phaseIndex}>
+                  <AccordionTrigger>
+                    <div className="flex justify-between w-full pr-4 items-center">
+                      <span className="text-lg font-medium text-left">{phase.phase_name}</span>
+                      <span className="text-sm text-muted-foreground font-normal whitespace-nowrap pl-4">{phase.expected_duration}</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pl-4 space-y-6">
+                    <p className="text-muted-foreground">{phase.phase_description}</p>
+                    
+                    {/* Modules Section */}
+                    {phase.modules.map((module, moduleIndex) => (
+                      <div key={moduleIndex} className="border-l-2 border-primary pl-4 py-2 space-y-3">
+                        <h4 className="font-semibold">{module.focus_area}</h4>
+                        
+                        <div>
+                          <h5 className="text-sm font-medium uppercase text-muted-foreground">Topics:</h5>
+                          <ul className="list-disc list-inside pl-2 text-sm space-y-1 mt-1">
+                            {module.topics.map((topic, topicIndex) => (
+                              <li key={topicIndex}>{topic}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div>
+                          <h5 className="text-sm font-medium uppercase text-muted-foreground">Resources:</h5>
+                          <ul className="list-disc list-inside pl-2 text-sm space-y-1 mt-1">
+                            {module.resources.map((resource, resourceIndex) => (
+                              <li key={resourceIndex}>{resource}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </CardContent>
         </Card>
       )}
+      {/* --- End of New Results Section --- */}
     </div>
   );
 };
