@@ -14,8 +14,11 @@ import { Badge } from "@/components/ui/badge";
 
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
+// --- TYPES TO MATCH N8N NORMALIZER OUTPUT ---
 interface FocusArea { name: string; }
-interface RoadmapResource { name: string; url: string; }
+// Updated: Resource no longer has a URL, per normalizer.js
+interface RoadmapResource { name: string; } 
+
 interface RoadmapPhase {
   phase: string;
   expected_duration: string;
@@ -27,6 +30,7 @@ interface RoadmapOutput {
   outcome: string;
   roadmap: RoadmapPhase[];
 }
+// --- END OF TYPES ---
 
 const LearningRoadmapTab = () => {
   const [loading, setLoading] = useState(false);
@@ -56,30 +60,20 @@ const LearningRoadmapTab = () => {
 
       const data = await response.json();
 
+      // --- UPDATED DATA HANDLING ---
+      // Check for the format from your normalizer.js: [{ output: { ... } }]
       if (Array.isArray(data) && data.length > 0 && data[0].output) {
-        const rawOutput = data[0].output;
+        const normalizedOutput = data[0].output as RoadmapOutput;
 
-        // Normalize roadmap
-        const normalizedRoadmap: RoadmapPhase[] = rawOutput.roadmap.map((phase: any) => ({
-          phase: phase.phase || "Untitled Phase",
-          expected_duration: phase.expected_duration || "N/A",
-          focus_areas: (phase.focus_areas || []).map((f: any) => ({ name: f.name || f })),
-          recommended_resources: (phase.recommended_resources || []).map((r: any) => ({
-            name: r.name || "Resource",
-            url: r.url || "#",
-          })),
-        }));
-
-        setRoadmapData({
-          overview: rawOutput.overview,
-          outcome: rawOutput.outcome,
-          roadmap: normalizedRoadmap,
-        });
+        // No re-normalization needed! The n8n node already did the work.
+        // We just set the data directly.
+        setRoadmapData(normalizedOutput);
 
         toast({ title: "Learning Roadmap Generated", description: "Successfully received roadmap from n8n." });
       } else {
         throw new Error("Invalid response format from webhook. Expected [{ output: { ... } }]");
       }
+      // --- END OF UPDATED DATA HANDLING ---
 
     } catch (error: any) {
       console.error(error);
@@ -116,7 +110,7 @@ const LearningRoadmapTab = () => {
           <CardHeader>
             <CardTitle>Your Learning Roadmap</CardTitle>
             <CardDescription>{roadmapData.overview}</CardDescription>
-          </CardHeader>
+          </G
           <CardContent className="space-y-6">
             <div className="p-4 bg-secondary/50 rounded-lg">
               <h3 className="text-lg font-semibold mb-2 flex items-center">
@@ -126,7 +120,8 @@ const LearningRoadmapTab = () => {
             </div>
 
             <Accordion type="single" collapsible className="w-full" defaultValue="phase-0">
-              {roadmapData.roadmap.map((phase, phaseIndex) => (
+              {/* Add safety check for roadmap array */
+              Array.isArray(roadmapData.roadmap) && roadmapData.roadmap.map((phase, phaseIndex) => (
                 <AccordionItem value={`phase-${phaseIndex}`} key={phaseIndex}>
                   <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4 items-center">
@@ -138,21 +133,34 @@ const LearningRoadmapTab = () => {
                     <div className="space-y-3">
                       <h4 className="font-semibold text-base flex items-center"><FaListUl className="h-4 w-4 mr-2 text-primary" /> Focus Areas</h4>
                       <ul className="list-disc list-inside pl-4 text-sm space-y-3 text-muted-foreground">
-                        {phase.focus_areas.length > 0 ? phase.focus_areas.map((fa, i) => <li key={i}>{fa.name}</li>) : <p className="text-sm text-muted-foreground/70 list-none">No focus areas listed.</p>}
+                        {/* Add safety check for focus_areas array */
+                        Array.isArray(phase.focus_areas) && phase.focus_areas.length > 0 ? (
+                          phase.focus_areas.map((fa, i) => <li key={i}>{fa.name}</li>)
+                        ) : (
+                          <p className="text-sm text-muted-foreground/70 list-none">No focus areas listed.</p>
+                        )}
                       </ul>
                     </div>
+                    
+                    {/* --- UPDATED RESOURCES SECTION --- */}
                     <div className="space-y-4">
                       <h4 className="font-semibold text-base flex items-center"><FaBook className="h-4 w-4 mr-2 text-primary" /> Recommended Resources</h4>
                       <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
-                        {phase.recommended_resources.length > 0 ? phase.recommended_resources.map((r, i) => (
-                          <li key={i}>
-                            <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center">
-                              {r.name} <FaExternalLinkAlt className="h-3 w-3 ml-1.5" />
-                            </a>
-                          </li>
-                        )) : <p className="pl-4 text-sm text-muted-foreground/70">No resources listed.</p>}
+                        {/* Add safety check for recommended_resources array */
+                        Array.isArray(phase.recommended_resources) && phase.recommended_resources.length > 0 ? (
+                          phase.recommended_resources.map((r, i) => (
+                            // Changed: Render as simple text, not a link
+                            <li key={i}>
+                              {r.name}
+                            </li>
+                          ))
+                        ) : (
+                          <p className="pl-4 text-sm text-muted-foreground/70">No resources listed.</p>
+                        )}
                       </ul>
                     </div>
+                    {/* --- END OF UPDATED SECTION --- */}
+
                   </AccordionContent>
                 </AccordionItem>
               ))}
@@ -166,6 +174,8 @@ const LearningRoadmapTab = () => {
 };
 
 export default LearningRoadmapTab;
+
+
 
 
 
