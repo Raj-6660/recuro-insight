@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { LearningResource } from '@/types/api';
-import { getLearningRoadmap } from '@/services/api';
 import { FaGraduationCap, FaDownload, FaExternalLinkAlt } from 'react-icons/fa';
 
 // Developer Configuration: Set your n8n webhook URL here
@@ -33,10 +32,9 @@ const LearningRoadmapTab = () => {
     setLoading(true);
 
     try {
-      // Send to n8n webhook
-      await fetch(WEBHOOK_URL, {
+      // Send to n8n webhook and wait for roadmap response
+      const response = await fetch(WEBHOOK_URL, {
         method: "POST",
-        mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },
@@ -48,75 +46,29 @@ const LearningRoadmapTab = () => {
         }),
       });
 
-      // Mock data for demo (since no-cors doesn't return data)
-      const mockResources: LearningResource[] = [
-        {
-          skill: 'Advanced React Patterns',
-          resource: 'React Advanced Patterns Course',
-          priority: 'High',
-          type: 'Course',
-          url: 'https://example.com/react-course'
-        },
-        {
-          skill: 'State Management',
-          resource: 'Redux Toolkit Mastery',
-          priority: 'High',
-          type: 'Course',
-          url: 'https://example.com/redux-course'
-        },
-        {
-          skill: 'Testing',
-          resource: 'Jest & React Testing Library',
-          priority: 'Medium',
-          type: 'Course',
-          url: 'https://example.com/testing-course'
-        },
-        {
-          skill: 'Performance Optimization',
-          resource: 'Web Performance Optimization',
-          priority: 'Medium',
-          type: 'Book',
-          url: 'https://example.com/performance-book'
-        },
-        {
-          skill: 'System Design',
-          resource: 'Frontend System Design Certification',
-          priority: 'High',
-          type: 'Certification',
-          url: 'https://example.com/system-design-cert'
-        },
-        {
-          skill: 'GraphQL',
-          resource: 'Build a GraphQL API Project',
-          priority: 'Low',
-          type: 'Project',
-          url: 'https://example.com/graphql-project'
-        },
-        {
-          skill: 'TypeScript Advanced',
-          resource: 'TypeScript Deep Dive',
-          priority: 'Medium',
-          type: 'Book',
-          url: 'https://example.com/typescript-book'
-        },
-        {
-          skill: 'Next.js',
-          resource: 'Next.js Production Applications',
-          priority: 'High',
-          type: 'Course',
-          url: 'https://example.com/nextjs-course'
-        }
-      ];
-      setResources(mockResources);
-      toast({
-        title: "Request sent to n8n",
-        description: "Data sent to webhook. Check your n8n workflow for results.",
-      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Expecting n8n Respond to Webhook node to send JSON like:
+      // { "roadmap": [ { "skill": "...", "resource": "...", "priority": "...", "type": "...", "url": "..." }, ... ] }
+
+      if (data.roadmap && Array.isArray(data.roadmap)) {
+        setResources(data.roadmap);
+        toast({
+          title: "Learning Roadmap Generated",
+          description: "Received roadmap from n8n successfully.",
+        });
+      } else {
+        throw new Error("Invalid response format from webhook");
+      }
     } catch (error) {
       console.error("Error sending to webhook:", error);
       toast({
         title: "Error",
-        description: "Failed to send data to webhook. Please check the URL.",
+        description: "Failed to generate roadmap. Please check the webhook response format.",
         variant: "destructive",
       });
     } finally {
@@ -241,8 +193,8 @@ const LearningRoadmapTab = () => {
                     <TableRow key={index}>
                       <TableCell className="font-medium">{resource.skill}</TableCell>
                       <TableCell>{resource.resource}</TableCell>
-                      <TableCell>{getPriorityBadge(resource.priority)}</TableCell>
-                      <TableCell>{getTypeBadge(resource.type)}</TableCell>
+                      <TableCell>{getPriorityBadge(resource.priority as 'High' | 'Medium' | 'Low')}</TableCell>
+                      <TableCell>{getTypeBadge(resource.type as 'Course' | 'Certification' | 'Project' | 'Book')}</TableCell>
                       <TableCell>
                         {resource.url ? (
                           <Button 
