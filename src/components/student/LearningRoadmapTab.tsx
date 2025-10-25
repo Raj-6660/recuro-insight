@@ -15,22 +15,17 @@ import { Badge } from "@/components/ui/badge"; // Using Badge for duration
 // Developer Configuration: Set your n8n webhook URL here
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
-// --- Types updated to match the ACTUAL n8n JSON output ---
-interface PhasePoint {
-  point_title: string;
-  point_description: string;
-}
-
+// --- Types updated to match the NEW n8n JSON output ---
 interface RoadmapResource {
-  resource_title: string;
-  resource_description: string;
+  name: string;
+  description: string;
 }
 
 interface RoadmapPhase {
-  phase_name: string;
-  duration: string;
-  phase_points: PhasePoint[];
-  resources: RoadmapResource[];
+  phase_title: string; // Changed from phase_name
+  expected_duration: string;
+  focus_areas: string[];
+  recommended_resources: RoadmapResource[]; // Now an array of objects
 }
 
 interface RoadmapOutput {
@@ -92,7 +87,11 @@ const LearningRoadmapTab = () => {
 
       const data = await response.json();
 
-      // Removed the console.log line
+      // --- !! NEW DEBUGGING LINE !! ---
+      // Log the actual data to the console to see its structure
+      console.log('Received data from n8n:', JSON.stringify(data, null, 2));
+      // --- !! END OF DEBUGGING LINE !! ---
+
 
       // --- MODIFIED LINES TO FIX PARSING ---
       // Check for the 'json' wrapper from n8n
@@ -199,33 +198,27 @@ const LearningRoadmapTab = () => {
                   <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4 items-center">
                       <span className="text-lg font-medium text-left">
-                        {phase.phase_name}
+                        {/* Use phase_title */}
+                        {phase.phase_title}
                       </span>
                       <Badge variant="outline" className="ml-4 whitespace-nowrap">
-                        {phase.duration}
+                        {phase.expected_duration}
                       </Badge>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4 space-y-6">
                     
-                    {/* Phase Points Section */}
+                    {/* Focus Areas Section */}
                     <div className="space-y-3">
                       <h4 className="font-semibold text-base flex items-center">
                         <FaListUl className="h-4 w-4 mr-2 text-primary" />
                         Focus Areas
                       </h4>
-                      <div className="pl-4 space-y-3">
-                        {Array.isArray(phase.phase_points) && phase.phase_points.length > 0 ? (
-                          phase.phase_points.map((point, pointIndex) => (
-                            <div key={pointIndex} className="text-sm">
-                              <strong className="block text-primary-foreground">{point?.point_title || 'Focus Area'}</strong>
-                              <p className="text-muted-foreground">{point?.point_description || 'No description provided.'}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground/70">No focus areas listed for this phase.</p>
-                        )}
-                      </div>
+                      <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
+                        {phase.focus_areas.map((area, areaIndex) => (
+                          <li key={areaIndex}>{area}</li>
+                        ))}
+                      </ul>
                     </div>
 
                     {/* Recommended Resources Section */}
@@ -235,16 +228,13 @@ const LearningRoadmapTab = () => {
                         Recommended Resources
                       </h4>
                       <div className="space-y-3">
-                        {Array.isArray(phase.resources) && phase.resources.length > 0 ? (
-                          phase.resources.map((resource, resIndex) => (
-                            <div key={resIndex} className="pl-4 text-sm">
-                              <strong className="block text-primary-foreground">{resource?.resource_title || 'Unnamed Resource'}</strong>
-                              <p className="text-muted-foreground">{resource?.resource_description || 'No description provided.'}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="pl-4 text-sm text-muted-foreground/70">No specific resources listed for this phase.</p>
-                        )}
+                        {/* Render resources as objects */}
+                        {phase.recommended_resources.map((resource, resIndex) => (
+                          <div key={resIndex} className="pl-4 text-sm">
+                            <strong className="block text-primary-foreground">{resource.name}</strong>
+                            <p className="text-muted-foreground">{resource.description}</p>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -261,4 +251,3 @@ const LearningRoadmapTab = () => {
 };
 
 export default LearningRoadmapTab;
-
