@@ -9,7 +9,7 @@ const MatchScorerTab = () => {
   const { toast } = useToast();
 
   // ✅ Replace this with your actual n8n webhook URL
-  const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/trigger-cv-jd-matcher';
+  const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/739ce57c-428e-4773-8872-f64f5c56bb99';
 
   const handleTrigger = async () => {
     setLoading(true);
