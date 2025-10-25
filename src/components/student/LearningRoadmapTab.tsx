@@ -87,17 +87,21 @@ const LearningRoadmapTab = () => {
 
       const data = await response.json();
 
-      // Updated response handling (now expecting the corrected structure)
-      if (Array.isArray(data) && data.length > 0 && data[0].output) {
-        const output = data[0].output as RoadmapOutput;
+      // --- MODIFIED LINES TO FIX PARSING ---
+      // Check for the 'json' wrapper from n8n
+      if (Array.isArray(data) && data.length > 0 && data[0].json && data[0].json.output) {
+        // Access the 'output' object inside 'json'
+        const output = data[0].json.output as RoadmapOutput;
         setRoadmapData(output);
         toast({
           title: "Learning Roadmap Generated",
           description: "Received roadmap from n8n successfully.",
         });
       } else {
-        throw new Error("Invalid response format from webhook. Expected [{ output: { ... } }]");
+        // Updated error message to reflect the expected structure
+        throw new Error("Invalid response format from webhook. Expected [{ json: { output: { ... } } }]");
       }
+      // --- END OF MODIFIED LINES ---
 
     } catch (error: any) {
       // --- Handle Timeout Error ---
@@ -111,7 +115,7 @@ const LearningRoadmapTab = () => {
         console.error("Error sending to webhook:", error);
         toast({
           title: "Error",
-          description: "Failed to generate roadmap. Please check the webhook response format.",
+          description: `Failed to generate roadmap: ${error.message}`,
           variant: "destructive",
         });
       }
