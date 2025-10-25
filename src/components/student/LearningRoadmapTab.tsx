@@ -15,17 +15,18 @@ import { Badge } from "@/components/ui/badge"; // Using Badge for duration
 // Developer Configuration: Set your n8n webhook URL here
 const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
-// --- Types updated to match the NEW n8n JSON output ---
+// --- Types for handling multiple n8n response formats ---
 
 interface RoadmapModule {
   focus_area: string;
   resources: string[];
 }
 
+// Normalized internal format
 interface RoadmapPhase {
   phase: string;
   expected_duration: string;
-  description: string;
+  description?: string;
   modules: RoadmapModule[];
 }
 
@@ -34,7 +35,56 @@ interface RoadmapOutput {
   outcome: string;
   roadmap: RoadmapPhase[];
 }
-// --- End of Updated Types ---
+
+// Raw response formats from n8n
+interface RawPhaseFormat1 {
+  phase: string;
+  expected_duration: string;
+  description: string;
+  modules: RoadmapModule[];
+}
+
+interface RawPhaseFormat2 {
+  phase_title: string;
+  expected_duration: string;
+  focus_areas: string[];
+  recommended_resources: string[];
+}
+
+// Mapper function to normalize different formats
+const normalizeRoadmapPhase = (rawPhase: any): RoadmapPhase => {
+  // Check if it's Format 1 (has modules)
+  if (rawPhase.modules && Array.isArray(rawPhase.modules)) {
+    return {
+      phase: rawPhase.phase || rawPhase.phase_title || 'Untitled Phase',
+      expected_duration: rawPhase.expected_duration || 'N/A',
+      description: rawPhase.description,
+      modules: rawPhase.modules,
+    };
+  }
+  
+  // Format 2 (has focus_areas and recommended_resources as flat arrays)
+  if (rawPhase.focus_areas && rawPhase.recommended_resources) {
+    return {
+      phase: rawPhase.phase_title || rawPhase.phase || 'Untitled Phase',
+      expected_duration: rawPhase.expected_duration || 'N/A',
+      description: undefined,
+      modules: [{
+        focus_area: 'Key Focus Areas',
+        resources: [...rawPhase.focus_areas, ...rawPhase.recommended_resources],
+      }],
+    };
+  }
+  
+  // Fallback for unexpected format
+  return {
+    phase: rawPhase.phase_title || rawPhase.phase || 'Untitled Phase',
+    expected_duration: rawPhase.expected_duration || 'N/A',
+    description: rawPhase.description,
+    modules: [],
+  };
+};
+// --- End of Types and Mapper ---
 
 const LearningRoadmapTab = () => {
   const [loading, setLoading] = useState(false);
@@ -91,9 +141,18 @@ const LearningRoadmapTab = () => {
       // --- MODIFIED LINES TO FIX PARSING ---
       // Check for the new response structure from n8n
       if (Array.isArray(data) && data.length > 0 && data[0].output) {
-        // Access the 'output' object directly
-        const output = data[0].output as RoadmapOutput;
-        setRoadmapData(output);
+        const rawOutput = data[0].output;
+        
+        // Normalize the roadmap phases using the mapper
+        const normalizedOutput: RoadmapOutput = {
+          overview: rawOutput.overview || 'Learning roadmap generated successfully.',
+          outcome: rawOutput.outcome || 'Complete this roadmap to achieve your career goals.',
+          roadmap: Array.isArray(rawOutput.roadmap) 
+            ? rawOutput.roadmap.map(normalizeRoadmapPhase)
+            : [],
+        };
+        
+        setRoadmapData(normalizedOutput);
         toast({
           title: "Learning Roadmap Generated",
           description: "Your personalized learning roadmap is ready!",
@@ -210,24 +269,31 @@ const LearningRoadmapTab = () => {
 
                     {/* Modules Section */}
                     {Array.isArray(phase.modules) && phase.modules.length > 0 && (
-                      <div className="space-y-4">
+                      <div className="space-y-5">
                         {phase.modules.map((module, moduleIndex) => (
-                          <div key={moduleIndex} className="border-l-2 border-primary/30 pl-4 space-y-3">
-                            <h4 className="font-semibold text-base flex items-center">
-                              <FaListUl className="h-4 w-4 mr-2 text-primary" />
-                              {module.focus_area}
-                            </h4>
+                          <div key={moduleIndex} className="space-y-4">
+                            {module.focus_area !== 'Key Focus Areas' && (
+                              <div className="border-l-2 border-primary/30 pl-4">
+                                <h4 className="font-semibold text-base flex items-center mb-3">
+                                  <FaListUl className="h-4 w-4 mr-2 text-primary" />
+                                  {module.focus_area}
+                                </h4>
+                              </div>
+                            )}
                             
                             {/* Resources for this module */}
                             {Array.isArray(module.resources) && module.resources.length > 0 && (
-                              <div className="space-y-2">
-                                <h5 className="text-sm font-medium flex items-center text-muted-foreground">
-                                  <FaBook className="h-3 w-3 mr-2" />
-                                  Resources
+                              <div className="space-y-3">
+                                <h5 className="text-sm font-semibold flex items-center">
+                                  <FaBook className="h-4 w-4 mr-2 text-primary" />
+                                  {module.focus_area === 'Key Focus Areas' ? 'Learning Path' : 'Recommended Resources'}
                                 </h5>
-                                <ul className="list-disc list-inside pl-4 text-sm space-y-1.5 text-muted-foreground">
+                                <ul className="space-y-2.5 pl-1">
                                   {module.resources.map((resource, resIndex) => (
-                                    <li key={resIndex}>{resource}</li>
+                                    <li key={resIndex} className="flex gap-3 text-sm text-muted-foreground">
+                                      <span className="text-primary mt-1.5">•</span>
+                                      <span className="flex-1">{resource}</span>
+                                    </li>
                                   ))}
                                 </ul>
                               </div>
