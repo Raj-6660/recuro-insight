@@ -61,9 +61,9 @@ const LearningRoadmapTab = () => {
       const data = await response.json();
 
       // --- UPDATED DATA HANDLING ---
-      // Check for the format from your normalizer.js: [{ output: { ... } }]
-      if (Array.isArray(data) && data.length > 0 && data[0].output) {
-        const normalizedOutput = data[0].output as RoadmapOutput;
+      // Fix: Check for the 'json' wrapper from n8n's 'Respond to Webhook' node
+      if (Array.isArray(data) && data.length > 0 && data[0].json && data[0].json.output) {
+        const normalizedOutput = data[0].json.output as RoadmapOutput;
 
         // No re-normalization needed! The n8n node already did the work.
         // We just set the data directly.
@@ -71,7 +71,8 @@ const LearningRoadmapTab = () => {
 
         toast({ title: "Learning Roadmap Generated", description: "Successfully received roadmap from n8n." });
       } else {
-        throw new Error("Invalid response format from webhook. Expected [{ output: { ... } }]");
+        // Updated error message to be more accurate
+        throw new Error("Invalid response format from webhook. Expected [{ json: { output: { ... } } }]");
       }
       // --- END OF UPDATED DATA HANDLING ---
 
@@ -110,7 +111,7 @@ const LearningRoadmapTab = () => {
           <CardHeader>
             <CardTitle>Your Learning Roadmap</CardTitle>
             <CardDescription>{roadmapData.overview}</CardDescription>
-          </CardHeader>
+          </G
           <CardContent className="space-y-6">
             <div className="p-4 bg-secondary/50 rounded-lg">
               <h3 className="text-lg font-semibold mb-2 flex items-center">
@@ -174,6 +175,8 @@ const LearningRoadmapTab = () => {
 };
 
 export default LearningRoadmapTab;
+
+
 
 
 
