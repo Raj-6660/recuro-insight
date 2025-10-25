@@ -110,7 +110,7 @@ const LearningRoadmapTab = () => {
           <CardHeader>
             <CardTitle>Your Learning Roadmap</CardTitle>
             <CardDescription>{roadmapData.overview}</CardDescription>
-          </G
+          </CardHeader>
           <CardContent className="space-y-6">
             <div className="p-4 bg-secondary/50 rounded-lg">
               <h3 className="text-lg font-semibold mb-2 flex items-center">
