@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,6 @@ const JDSummarizerTab = () => {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [summaries, setSummaries] = useState<any[]>([]);
-  const [jobId, setJobId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // File selection
@@ -37,7 +36,7 @@ const JDSummarizerTab = () => {
     }
   };
 
-  // Upload & start analysis
+  // Upload & analyze
   const handleAnalyze = async () => {
     if (!selectedFile) {
       toast({
@@ -57,57 +56,33 @@ const JDSummarizerTab = () => {
       formData.append('timestamp', new Date().toISOString());
       formData.append('action', 'jd_upload_and_analyze');
 
-      // Initial request to start processing
+      // Send file to n8n
       const response = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+
       if (!response.ok) throw new Error(`Webhook request failed with status ${response.status}`);
 
       const result = await response.json();
-      // Expect backend to return a job ID immediately
-      if (!result.jobId) throw new Error("No jobId returned from webhook");
 
-      setJobId(result.jobId);
-      toast({ title: 'Processing started', description: 'Analysis in progress...' });
-
+      if (result[0]?.summaries && Array.isArray(result[0].summaries)) {
+        setSummaries(result[0].summaries);
+        toast({
+          title: 'Analysis Complete!',
+          description: `Successfully analyzed ${result[0].summaries.length} resume(s).`,
+        });
+      } else {
+        throw new Error("Invalid response format from webhook. Expected 'summaries' array.");
+      }
     } catch (error: any) {
-      console.error(error);
+      console.error('Error uploading/analyzing JD:', error);
       toast({
-        title: 'Failed to start analysis',
+        title: 'Analysis failed',
         description: error.message,
         variant: 'destructive',
       });
+    } finally {
       setLoading(false);
     }
   };
-
-  // Polling for results every 3 seconds
-  useEffect(() => {
-    if (!jobId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${WEBHOOK_URL}?jobId=${jobId}`);
-        if (!res.ok) throw new Error(`Failed to fetch job status: ${res.status}`);
-        const data = await res.json();
-
-        // Check if summaries are ready
-        if (data[0]?.summaries && Array.isArray(data[0].summaries)) {
-          setSummaries(data[0].summaries);
-          setLoading(false);
-          setJobId(null);
-          toast({
-            title: 'Analysis Complete!',
-            description: `Successfully analyzed ${data[0].summaries.length} resume(s).`,
-          });
-          clearInterval(interval);
-        }
-      } catch (err: any) {
-        console.error('Polling error:', err);
-        // Optionally show a toast for errors
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [jobId, toast]);
 
   // Export CSV
   const exportData = () => {
