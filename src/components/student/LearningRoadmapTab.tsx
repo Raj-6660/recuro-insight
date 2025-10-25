@@ -10,7 +10,7 @@ import { getLearningRoadmap } from '@/services/api';
 import { FaGraduationCap, FaDownload, FaExternalLinkAlt } from 'react-icons/fa';
 
 // Developer Configuration: Set your n8n webhook URL here
-const WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/learning-roadmap';
+const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
 const LearningRoadmapTab = () => {
   const [loading, setLoading] = useState(false);
