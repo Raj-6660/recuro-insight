@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { FaGraduationCap, FaCheckCircle, FaBook, FaListUl } from 'react-icons/fa';
+import { FaGraduationCap, FaCheckCircle, FaBook, FaListUl, FaExternalLinkAlt } from 'react-icons/fa';
 import {
   Accordion,
   AccordionContent,
@@ -17,24 +17,23 @@ const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/ea09ac68-19dd-41d
 
 // --- Types updated to match the NEW n8n JSON output ---
 
-// NEW interface for the nested "resources" object
-interface RoadmapResourceArea {
-  area: string;
-  recommendations: string[];
+// NEW interface for the nested "recommended_resources" object
+interface RoadmapResource {
+  name: string;
+  url: string;
 }
 
 interface RoadmapPhase {
-  title: string; // Changed from phase_title
-  phase: string;
-  duration: string; // Changed from expected_duration
+  title: string;
+  expected_duration: string; // Changed from 'duration'
   focus_areas: string[];
-  resources: RoadmapResourceArea[]; // Changed from recommended_resources: string[]
+  recommended_resources: RoadmapResource[]; // Changed from 'resources'
 }
 
 interface RoadmapOutput {
   overview: string;
   outcome: string;
-  roadmap: RoadmapPhase[];
+  phases: RoadmapPhase[]; // Changed from 'roadmap'
 }
 // --- End of Updated Types ---
 
@@ -89,8 +88,6 @@ const LearningRoadmapTab = () => {
       }
 
       const data = await response.json();
-
-      // Removed the console.log line
 
       // --- MODIFIED LINES TO FIX PARSING ---
       // Check for the 'json' wrapper from n8n
@@ -192,24 +189,24 @@ const LearningRoadmapTab = () => {
 
             {/* Phases Section */}
             <Accordion type="single" collapsible className="w-full" defaultValue="phase-0">
-              {/* Add safety check for roadmap array itself */}
-              {Array.isArray(roadmapData.roadmap) && roadmapData.roadmap.map((phase, phaseIndex) => (
-                <AccordionItem value={`phase-${phaseIndex}`} key={phaseIndex}>
+              {/* Add safety check for 'phases' array itself */}
+              {Array.isArray(roadmapData.phases) && roadmapData.phases.map((phase, phaseIndex) => (
+                <AccordionItem value={`phase-${phaseIndex}`} key={phase.title || phaseIndex}>
                   <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4 items-center">
                       <span className="text-lg font-medium text-left">
-                        {/* Use new 'title' key */}
+                        {/* Use 'title' key */}
                         {phase.title}
                       </span>
                       <Badge variant="outline" className="ml-4 whitespace-nowGrap">
-                        {/* Use new 'duration' key */}
-                        {phase.duration}
+                        {/* Use 'expected_duration' key */}
+                        {phase.expected_duration}
                       </Badge>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4 space-y-6">
                     
-                    {/* --- MODIFIED FOCUS AREAS SECTION --- */}
+                    {/* --- FOCUS AREAS SECTION --- */}
                     <div className="space-y-3">
                       <h4 className="font-semibold text-base flex items-center">
                         <FaListUl className="h-4 w-4 mr-2 text-primary" />
@@ -226,7 +223,7 @@ const LearningRoadmapTab = () => {
                         )}
                       </ul>
                     </div>
-                    {/* --- END OF MODIFIED SECTION --- */}
+                    {/* --- END OF SECTION --- */}
 
 
                     {/* --- MODIFIED RECOMMENDED RESOURCES SECTION --- */}
@@ -236,25 +233,24 @@ const LearningRoadmapTab = () => {
                         Recommended Resources
                       </h4>
                       <div className="space-y-3">
-                        {/* Check if 'resources' array exists and has items. */}
-                        {Array.isArray(phase.resources) && phase.resources.length > 0 ? (
-                          // Map over the new 'resources' array of objects
-                          phase.resources.map((resourceArea, resIndex) => (
-                            <div key={resIndex} className="pl-4 text-sm">
-                              {/* Display the 'area' as a sub-heading */}
-                              <strong className="block text-primary-foreground">{resourceArea.area}</strong>
-                              {/* Now map the 'recommendations' array (which is strings) */}
-                              <ul className="list-disc list-inside pl-2 text-muted-foreground space-y-1 mt-1">
-                                {Array.isArray(resourceArea.recommendations) && resourceArea.recommendations.length > 0 ? (
-                                  resourceArea.recommendations.map((rec, recIndex) => (
-                                    <li key={recIndex}>{rec}</li>
-                                  ))
-                                ) : (
-                                  <li className="list-none italic">No recommendations for this area.</li>
-                                )}
-                              </ul>
-                            </div>
-                          ))
+                        {/* Check if 'recommended_resources' array exists and has items. */}
+                        {Array.isArray(phase.recommended_resources) && phase.recommended_resources.length > 0 ? (
+                          // Map over the new 'recommended_resources' array of objects
+                          <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
+                            {phase.recommended_resources.map((resource, resIndex) => (
+                              <li key={resIndex}>
+                                <a
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline inline-flex items-center"
+                                >
+                                  {resource.name}
+                                  <FaExternalLinkAlt className="h-3 w-3 ml-1.5" />
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
                         ) : (
                           // Show a fallback message if no resources are provided
                           <p className="pl-4 text-sm text-muted-foreground/70">No specific resources listed for this phase.</p>
