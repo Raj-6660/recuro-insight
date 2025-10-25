@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FaUpload, FaFilePdf } from 'react-icons/fa';
 
 // Developer Configuration: Set your n8n webhook URL here
-const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/382240e3-b2de-49e1-a60e-be8010ba93a5';
+const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/0cb6fa0e-6484-4892-a5eb-044073f34004';
 
 const ResumeUploadTab = () => {
   const [loading, setLoading] = useState(false);
