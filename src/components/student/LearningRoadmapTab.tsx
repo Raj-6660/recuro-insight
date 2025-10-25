@@ -87,6 +87,12 @@ const LearningRoadmapTab = () => {
 
       const data = await response.json();
 
+      // --- !! NEW DEBUGGING LINE !! ---
+      // Log the actual data to the console to see its structure
+      console.log('Received data from n8n:', JSON.stringify(data, null, 2));
+      // --- !! END OF DEBUGGING LINE !! ---
+
+
       // --- MODIFIED LINES TO FIX PARSING ---
       // Check for the 'json' wrapper from n8n
       if (Array.isArray(data) && data.length > 0 && data[0].json && data[0].json.output) {
