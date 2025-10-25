@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Upload, Download } from 'lucide-react'; // Changed from react-icons
+import { FileText, Upload, Download } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 // Developer Configuration: Set your n8n webhook URL here
@@ -12,7 +12,7 @@ const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/4f5f82f6-8b82-449
 const JDSummarizerTab = () => {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [summaries, setSummaries] = useState<any[]>([]); // <-- ADDED state for results
+  const [summaries, setSummaries] = useState<any[]>([]);
   const { toast } = useToast();
 
   // Handle file selection
@@ -29,16 +29,16 @@ const JDSummarizerTab = () => {
           description: 'Please upload a Word document (.doc or .docx).',
           variant: 'destructive',
         });
-        setSelectedFile(null); // Clear selection on invalid type
+        setSelectedFile(null);
         return;
       }
       setSelectedFile(file);
-      setSummaries([]); // Clear previous results when a new file is selected
+      setSummaries([]);
     }
   };
 
   // Handle file upload and analysis
-  const handleAnalyze = async () => { // <-- MODIFIED function (renamed from handleUpload)
+  const handleAnalyze = async () => {
     if (!selectedFile) {
       toast({
         title: 'No file selected',
@@ -55,12 +55,10 @@ const JDSummarizerTab = () => {
       formData.append('file', selectedFile);
       formData.append('filename', selectedFile.name);
       formData.append('timestamp', new Date().toISOString());
-      formData.append('action', 'jd_upload_and_analyze'); // Action name updated
+      formData.append('action', 'jd_upload_and_analyze');
 
-      // Send binary file to n8n webhook and wait for JSON response
       const response = await fetch(WEBHOOK_URL, {
         method: 'POST',
-        // REMOVED 'mode: 'no-cors'' to read the response
         body: formData,
       });
 
@@ -69,19 +67,20 @@ const JDSummarizerTab = () => {
       }
 
       const result = await response.json();
+      console.log('Webhook response:', result);
 
-      // Check for the 'summaries' key from your n8n code node
-      if (result.summaries && Array.isArray(result.summaries)) {
-        setSummaries(result.summaries);
+      // FIX: Access the first element of the array returned by webhook
+      if (result[0]?.summaries && Array.isArray(result[0].summaries)) {
+        setSummaries(result[0].summaries);
         toast({
           title: 'Analysis Complete!',
-          description: `Successfully analyzed ${result.summaries.length} resume(s).`,
+          description: `Successfully analyzed ${result[0].summaries.length} resume(s).`,
         });
       } else {
-        throw new Error("Invalid response format from n8n. Expected 'summaries' array.");
+        throw new Error("Invalid response format from n8n. Expected an array with 'summaries' key.");
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading/analyzing JD:', error);
       toast({
         title: 'Analysis failed',
@@ -93,7 +92,7 @@ const JDSummarizerTab = () => {
     }
   };
 
-  // --- ADDED exportData function ---
+  // Export data to CSV
   const exportData = () => {
     const headers = [
       "Date", "Resume", "First Name", "Last Name", "Email",
@@ -102,9 +101,8 @@ const JDSummarizerTab = () => {
     ];
 
     const csvRows = [
-      headers.join(','), // Header row
+      headers.join(','),
       ...summaries.map(s => {
-        // Function to safely wrap a field in quotes and escape internal quotes
         const safeCSV = (field: any) => {
           const str = String(field || '').replace(/"/g, '""');
           return `"${str}"`;
@@ -138,11 +136,11 @@ const JDSummarizerTab = () => {
   };
 
   return (
-    <div className="space-y-6"> {/* MODIFIED: Wrapped in div */}
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" /> {/* Changed from FaFileAlt */}
+            <FileText className="h-5 w-5" />
             Job Description Uploader
           </CardTitle>
           <CardDescription>
@@ -151,9 +149,8 @@ const JDSummarizerTab = () => {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Upload Box */}
           <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 space-y-4">
-            <Upload className="h-12 w-12 text-muted-foreground" /> {/* Changed from FaUpload */}
+            <Upload className="h-12 w-12 text-muted-foreground" />
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">
                 {selectedFile ? selectedFile.name : 'Choose a Word document or drag and drop'}
@@ -168,16 +165,14 @@ const JDSummarizerTab = () => {
             />
           </div>
 
-          {/* Upload Button */}
           <Button
-            onClick={handleAnalyze} // <-- MODIFIED: points to new function
+            onClick={handleAnalyze}
             disabled={loading || !selectedFile}
             className="w-full bg-recruiter-gradient"
           >
-            {/* MODIFIED: Button text */}
             {loading ? 'Analyzing...' : (
               <>
-                <Upload className="mr-2 h-4 w-4" /> {/* Changed from FaUpload */}
+                <Upload className="mr-2 h-4 w-4" />
                 Upload & Analyze
               </>
             )}
@@ -185,7 +180,6 @@ const JDSummarizerTab = () => {
         </CardContent>
       </Card>
 
-      {/* --- ADDED Results Section --- */}
       {summaries.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -196,7 +190,7 @@ const JDSummarizerTab = () => {
               </CardDescription>
             </div>
             <Button onClick={exportData} variant="outline">
-              <Download className="mr-2 h-4 w-4" /> {/* Changed from FaDownload */}
+              <Download className="mr-2 h-4 w-4" />
               Export to CSV
             </Button>
           </CardHeader>
@@ -221,7 +215,6 @@ const JDSummarizerTab = () => {
                   {summaries.map((s, index) => (
                     <TableRow key={index}>
                       <TableCell className="font-medium">
-                        {/* Shorten resume link for display if it's a URL */}
                         {s.resume.startsWith('http') ? (
                           <a href={s.resume} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                             View Resume
@@ -232,7 +225,7 @@ const JDSummarizerTab = () => {
                       <TableCell>{s.email}</TableCell>
                       <TableCell className="font-medium text-center">{s.overall_fit}</TableCell>
                       <TableCell>{s.strengths}</TableCell>
-                      <TableCell>{s.weaknesses}</TableCell>
+                      <TableCell>{s.weaksnesses}</TableCell>
                       <TableCell>{s.risk_factor}</TableCell>
                       <TableCell>{s.reward_factor}</TableCell>
                       <TableCell>{s.justification}</TableCell>
@@ -250,5 +243,3 @@ const JDSummarizerTab = () => {
 };
 
 export default JDSummarizerTab;
-
-
