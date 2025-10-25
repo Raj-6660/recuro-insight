@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FaFileAlt, FaUpload } from 'react-icons/fa';
 
 // Developer Configuration: Set your n8n webhook URL here
-const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/YOUR_WEBHOOK_ID';
+const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/4f5f82f6-8b82-449d-a4b0-057638d8adfd';
 
 const JDSummarizerTab = () => {
   const [loading, setLoading] = useState(false);
