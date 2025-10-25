@@ -87,11 +87,7 @@ const LearningRoadmapTab = () => {
 
       const data = await response.json();
 
-      // --- !! NEW DEBUGGING LINE !! ---
-      // Log the actual data to the console to see its structure
-      console.log('Received data from n8n:', JSON.stringify(data, null, 2));
-      // --- !! END OF DEBUGGING LINE !! ---
-
+      // Removed the console.log line
 
       // --- MODIFIED LINES TO FIX PARSING ---
       // Check for the 'json' wrapper from n8n
@@ -221,22 +217,31 @@ const LearningRoadmapTab = () => {
                       </ul>
                     </div>
 
-                    {/* Recommended Resources Section */}
+                    {/* --- MODIFIED RECOMMENDED RESOURCES SECTION --- */}
                     <div className="space-y-4">
                       <h4 className="font-semibold text-base flex items-center">
                         <FaBook className="h-4 w-4 mr-2 text-primary" />
                         Recommended Resources
                       </h4>
                       <div className="space-y-3">
-                        {/* Render resources as objects */}
-                        {phase.recommended_resources.map((resource, resIndex) => (
-                          <div key={resIndex} className="pl-4 text-sm">
-                            <strong className="block text-primary-foreground">{resource.name}</strong>
-                            <p className="text-muted-foreground">{resource.description}</p>
-                          </div>
-                        ))}
+                        {/* Check if recommended_resources exists AND is an array AND has items.
+                          This prevents the app from crashing if the AI forgets to send this key.
+                        */}
+                        {Array.isArray(phase.recommended_resources) && phase.recommended_resources.length > 0 ? (
+                          phase.recommended_resources.map((resource, resIndex) => (
+                            <div key={resIndex} className="pl-4 text-sm">
+                              {/* Add optional chaining (?.), just in case the object is malformed */}
+                              <strong className="block text-primary-foreground">{resource?.name || 'Unnamed Resource'}</strong>
+                              <p className="text-muted-foreground">{resource?.description || 'No description provided.'}</p>
+                            </div>
+                          ))
+                        ) : (
+                          // Show a fallback message if no resources are provided
+                          <p className="pl-4 text-sm text-muted-foreground/70">No specific resources listed for this phase.</p>
+                        )}
                       </div>
                     </div>
+                    {/* --- END OF MODIFIED SECTION --- */}
 
                   </AccordionContent>
                 </AccordionItem>
