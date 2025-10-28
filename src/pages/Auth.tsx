@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/auth';
 import { useToast } from '@/hooks/use-toast';
 import { FaUserGraduate, FaBuilding } from 'react-icons/fa';
+import loginBg from '@/assets/login-bg.png';
 
 const Auth = () => {
   const { login, register } = useAuth();
@@ -80,8 +81,17 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark-gradient flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      {/* Background image with reduced brightness */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${loginBg})` }}
+      >
+        <div className="absolute inset-0 bg-black/50"></div>
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary-foreground mb-2">
             Career Platform
