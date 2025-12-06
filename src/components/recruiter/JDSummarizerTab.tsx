@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 // Developer Configuration: Set your n8n webhook URLs here
 const WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/4f5f82f6-8b82-449d-a4b0-057638d8adfd';
-const SCHEDULE_INTERVIEW_WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/schedule-interviews'; // Update this with your actual production URL
+const SCHEDULE_INTERVIEW_WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/dedc2f9d-b050-4705-a687-3150ab4b843f'; // Update this with your actual production URL
 
 const JDSummarizerTab = () => {
   const [loading, setLoading] = useState(false);
