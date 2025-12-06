@@ -7,7 +7,7 @@ import { FileText, Upload, Download } from 'lucide-react'; // Changed from react
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 // Developer Configuration: Set your n8n webhook URL here
-const WEBHOOK_URL = 'https://ghostr.app.n8n.cloud/webhook-test/4f5f82f6-8b82-449d-a4b0-057638d8adfd';
+const WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/4f5f82f6-8b82-449d-a4b0-057638d8adfd';
 
 const JDSummarizerTab = () => {
   const [loading, setLoading] = useState(false);
