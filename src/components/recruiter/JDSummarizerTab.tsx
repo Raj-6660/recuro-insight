@@ -12,7 +12,7 @@ const SCHEDULE_INTERVIEW_WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/de
 
 const JDSummarizerTab = () => {
   const [loading, setLoading] = useState(false);
-  const [schedulingInterviews, setSchedulingInterviews] = useState(false);
+  
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [summaries, setSummaries] = useState<any[]>([]);
   const { toast } = useToast();
@@ -137,58 +137,31 @@ const JDSummarizerTab = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Schedule interviews with top candidates
-  const handleScheduleInterviews = async () => {
+  // Schedule interviews - just send request to n8n, no response handling
+  const handleScheduleInterviews = () => {
     const topCandidates = summaries.filter(s => s.overall_fit >= 7);
     
-    if (topCandidates.length === 0) {
-      toast({
-        title: 'No top candidates',
-        description: 'No candidates with overall fit score of 7 or above found.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    fetch(SCHEDULE_INTERVIEW_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'schedule_interviews',
+        candidates: topCandidates.map(c => ({
+          name: `${c.first_name} ${c.last_name}`,
+          email: c.email,
+          overall_fit: c.overall_fit,
+          resume: c.resume,
+        })),
+        timestamp: new Date().toISOString(),
+      }),
+    });
 
-    setSchedulingInterviews(true);
-
-    try {
-      const response = await fetch(SCHEDULE_INTERVIEW_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'schedule_interviews',
-          candidates: topCandidates.map(c => ({
-            name: `${c.first_name} ${c.last_name}`,
-            email: c.email,
-            overall_fit: c.overall_fit,
-            resume: c.resume,
-          })),
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to schedule interviews: ${response.status}`);
-      }
-
-      toast({
-        title: 'Interviews Scheduled!',
-        description: `Successfully initiated interview scheduling for ${topCandidates.length} top candidate(s).`,
-      });
-
-    } catch (error: any) {
-      console.error('Error scheduling interviews:', error);
-      toast({
-        title: 'Scheduling failed',
-        description: `Failed to schedule interviews. ${error.message}`,
-        variant: 'destructive',
-      });
-    } finally {
-      setSchedulingInterviews(false);
-    }
+    toast({
+      title: 'Request Sent',
+      description: 'Interview scheduling request sent to backend.',
+    });
   };
 
   return (
@@ -299,15 +272,10 @@ const JDSummarizerTab = () => {
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleScheduleInterviews}
-                disabled={schedulingInterviews}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
-                {schedulingInterviews ? 'Scheduling...' : (
-                  <>
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Schedule Interviews with Top Candidates
-                  </>
-                )}
+                <Calendar className="mr-2 h-4 w-4" />
+                Schedule Interviews with Top Candidates
               </Button>
             </div>
           </CardContent>
