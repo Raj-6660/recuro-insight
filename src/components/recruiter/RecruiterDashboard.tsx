@@ -6,7 +6,7 @@ import { FaBuilding, FaSignOutAlt } from 'react-icons/fa';
 import recruiterBg from '@/assets/recruiter-bg.png';
 
 const RecruiterDashboard = () => {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
 
   return (
     <div className="min-h-screen relative">
@@ -30,7 +30,7 @@ const RecruiterDashboard = () => {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold">Job Screening Platform</h1>
-                  <p className="text-sm text-muted-foreground">Welcome back, {user?.name}</p>
+                  <p className="text-sm text-muted-foreground">Welcome back, {profile?.name}</p>
                 </div>
               </div>
               <Button onClick={logout} variant="outline" size="sm">

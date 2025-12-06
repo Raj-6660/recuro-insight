@@ -38,10 +38,18 @@ const Auth = () => {
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      let message = "Please check your credentials and try again.";
+      if (error?.message?.includes('Invalid login credentials')) {
+        message = "Invalid email or password. Please try again.";
+      } else if (error?.message?.includes('Email not confirmed')) {
+        message = "Please confirm your email before logging in.";
+      } else if (error?.message) {
+        message = error.message;
+      }
       toast({
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -61,6 +69,15 @@ const Auth = () => {
       return;
     }
 
+    if (registerForm.password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -69,10 +86,18 @@ const Auth = () => {
         title: "Account created!",
         description: "Welcome to the Career Platform.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      let message = "Please try again with different credentials.";
+      if (error?.message?.includes('User already registered')) {
+        message = "An account with this email already exists.";
+      } else if (error?.message?.includes('Password')) {
+        message = error.message;
+      } else if (error?.message) {
+        message = error.message;
+      }
       toast({
         title: "Registration failed",
-        description: "Please try again with different credentials.",
+        description: message,
         variant: "destructive",
       });
     } finally {
