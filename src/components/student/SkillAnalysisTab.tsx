@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FaUpload, FaDownload, FaFileAlt } from 'react-icons/fa';
 
 // Developer Configuration: Set your n8n webhook URL here
-const WEBHOOK_URL = 'https://n8n-m2i5.onrender.com/webhook/af6bd38f-6e02-4bae-8842-1c447025ab64';
+const WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/af6bd38f-6e02-4bae-8842-1c447025ab64';
 
 const SkillAnalysisTab = () => {
   const [loading, setLoading] = useState(false);
