@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 
-const WEBHOOK_URL = 'https://n8n-m2i5.onrender.com/webhook/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
+const WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
 // --- TYPES TO MATCH N8N NORMALIZER OUTPUT ---
 interface FocusArea { name: string; }
