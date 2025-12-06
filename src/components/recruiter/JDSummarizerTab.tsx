@@ -3,16 +3,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Upload, Download } from 'lucide-react'; // Changed from react-icons
+import { FileText, Upload, Download, Calendar } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-// Developer Configuration: Set your n8n webhook URL here
+// Developer Configuration: Set your n8n webhook URLs here
 const WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/4f5f82f6-8b82-449d-a4b0-057638d8adfd';
+const SCHEDULE_INTERVIEW_WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/schedule-interviews'; // Update this with your actual production URL
 
 const JDSummarizerTab = () => {
   const [loading, setLoading] = useState(false);
+  const [schedulingInterviews, setSchedulingInterviews] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [summaries, setSummaries] = useState<any[]>([]); // <-- ADDED state for results
+  const [summaries, setSummaries] = useState<any[]>([]);
   const { toast } = useToast();
 
   // Handle file selection
@@ -135,6 +137,60 @@ const JDSummarizerTab = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Schedule interviews with top candidates
+  const handleScheduleInterviews = async () => {
+    const topCandidates = summaries.filter(s => s.overall_fit >= 7);
+    
+    if (topCandidates.length === 0) {
+      toast({
+        title: 'No top candidates',
+        description: 'No candidates with overall fit score of 7 or above found.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSchedulingInterviews(true);
+
+    try {
+      const response = await fetch(SCHEDULE_INTERVIEW_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'schedule_interviews',
+          candidates: topCandidates.map(c => ({
+            name: `${c.first_name} ${c.last_name}`,
+            email: c.email,
+            overall_fit: c.overall_fit,
+            resume: c.resume,
+          })),
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to schedule interviews: ${response.status}`);
+      }
+
+      toast({
+        title: 'Interviews Scheduled!',
+        description: `Successfully initiated interview scheduling for ${topCandidates.length} top candidate(s).`,
+      });
+
+    } catch (error: any) {
+      console.error('Error scheduling interviews:', error);
+      toast({
+        title: 'Scheduling failed',
+        description: `Failed to schedule interviews. ${error.message}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setSchedulingInterviews(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -237,6 +293,22 @@ const JDSummarizerTab = () => {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Schedule Interviews Button */}
+            <div className="mt-6 flex justify-end">
+              <Button 
+                onClick={handleScheduleInterviews}
+                disabled={schedulingInterviews}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {schedulingInterviews ? 'Scheduling...' : (
+                  <>
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Schedule Interviews with Top Candidates
+                  </>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
