@@ -1,10 +1,24 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AuthState, UserRole } from '@/types/auth';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/auth';
 
-interface AuthContextType extends AuthState {
+interface UserProfile {
+  id: string;
+  user_id: string;
+  name: string | null;
+  role: UserRole;
+}
+
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  profile: UserProfile | null;
+  isAuthenticated: boolean;
+  loading: boolean;
   login: (email: string, password: string, role: UserRole) => Promise<void>;
   register: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,88 +32,131 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    loading: true,
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (data && !error) {
+      setProfile(data as UserProfile);
+    }
+  };
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        loading: false,
-      });
-    } else {
-      setAuthState(prev => ({ ...prev, loading: false }));
-    }
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Defer profile fetch with setTimeout to avoid deadlock
+        if (session?.user) {
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
+        
+        setLoading(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      }
+      
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string, role: UserRole) => {
-    setAuthState(prev => ({ ...prev, loading: true }));
-    
-    try {
-      // Mock authentication - replace with actual API call
-      const mockUser: User = {
-        id: Math.random().toString(36),
-        email,
-        role,
-        name: email.split('@')[0],
-        created_at: new Date().toISOString(),
-      };
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setAuthState({
-        user: mockUser,
-        isAuthenticated: true,
-        loading: false,
-      });
-    } catch (error) {
-      setAuthState(prev => ({ ...prev, loading: false }));
+    if (error) {
       throw error;
+    }
+
+    // Update role if different from what's stored
+    if (data.user) {
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .single();
+
+      if (existingProfile && existingProfile.role !== role) {
+        await supabase
+          .from('profiles')
+          .update({ role })
+          .eq('user_id', data.user.id);
+      }
     }
   };
 
   const register = async (email: string, password: string, name: string, role: UserRole) => {
-    setAuthState(prev => ({ ...prev, loading: true }));
+    const redirectUrl = `${window.location.origin}/`;
     
-    try {
-      // Mock registration - replace with actual API call
-      const mockUser: User = {
-        id: Math.random().toString(36),
-        email,
-        role,
-        name,
-        created_at: new Date().toISOString(),
-      };
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          name,
+          role,
+        },
+      },
+    });
 
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setAuthState({
-        user: mockUser,
-        isAuthenticated: true,
-        loading: false,
-      });
-    } catch (error) {
-      setAuthState(prev => ({ ...prev, loading: false }));
+    if (error) {
       throw error;
+    }
+
+    if (data.user && !data.session) {
+      // User needs to confirm email
+      throw new Error('Please check your email to confirm your account.');
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('user');
-    setAuthState({
-      user: null,
-      isAuthenticated: false,
-      loading: false,
-    });
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw error;
+    }
+    setUser(null);
+    setSession(null);
+    setProfile(null);
   };
 
   return (
-    <AuthContext.Provider value={{ ...authState, login, register, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      profile, 
+      isAuthenticated: !!session, 
+      loading, 
+      login, 
+      register, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

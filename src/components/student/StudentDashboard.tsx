@@ -9,7 +9,7 @@ import LearningRoadmapTab from './LearningRoadmapTab';
 import { FaUserGraduate, FaSignOutAlt, FaChartBar, FaRoad, FaGraduationCap } from 'react-icons/fa';
 
 const StudentDashboard = () => {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-dark-gradient">
@@ -23,7 +23,7 @@ const StudentDashboard = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold">Career Navigator</h1>
-                <p className="text-sm text-muted-foreground">Welcome back, {user?.name}</p>
+                <p className="text-sm text-muted-foreground">Welcome back, {profile?.name}</p>
               </div>
             </div>
             <Button onClick={logout} variant="outline" size="sm">
