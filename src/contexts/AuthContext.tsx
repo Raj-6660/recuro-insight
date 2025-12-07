@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
 
-    // Update role if different from what's stored
+    // Verify the user has the correct role
     if (data.user) {
       const { data: existingProfile } = await supabase
         .from('profiles')
@@ -103,10 +103,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (existingProfile && existingProfile.role !== role) {
-        await supabase
-          .from('profiles')
-          .update({ role })
-          .eq('user_id', data.user.id);
+        // Sign out and throw error if role doesn't match
+        await supabase.auth.signOut();
+        throw new Error(`This account is registered as a ${existingProfile.role}. Please select the correct role.`);
       }
     }
   };

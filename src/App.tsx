@@ -12,7 +12,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -29,10 +29,22 @@ const AppRoutes = () => {
     return <Auth />;
   }
 
-  // Role-based dashboard routing
-  if (user?.role === 'student') {
+  // Wait for profile to load before routing
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-dark-gradient flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Role-based dashboard routing using profile
+  if (profile.role === 'student') {
     return <StudentDashboard />;
-  } else if (user?.role === 'recruiter') {
+  } else if (profile.role === 'recruiter') {
     return <RecruiterDashboard />;
   }
 
