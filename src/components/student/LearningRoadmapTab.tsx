@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { FaGraduationCap, FaCheckCircle, FaBook, FaListUl, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaGraduationCap, FaCheckCircle, FaBook, FaListUl } from 'react-icons/fa';
 import {
   Accordion,
   AccordionContent,
@@ -11,12 +11,12 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { LearningRoadmapState } from './StudentDashboard';
 
 const WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/ea09ac68-19dd-41d1-ab69-84f8822a28b7';
 
 // --- TYPES TO MATCH N8N NORMALIZER OUTPUT ---
 interface FocusArea { name: string; }
-// Updated: Resource no longer has a URL, per normalizer.js
 interface RoadmapResource { name: string; } 
 
 interface RoadmapPhase {
@@ -30,14 +30,17 @@ interface RoadmapOutput {
   outcome: string;
   roadmap: RoadmapPhase[];
 }
-// --- END OF TYPES ---
 
-const LearningRoadmapTab = () => {
+interface LearningRoadmapTabProps {
+  state: LearningRoadmapState;
+  setState: React.Dispatch<React.SetStateAction<LearningRoadmapState>>;
+}
+
+const LearningRoadmapTab = ({ state, setState }: LearningRoadmapTabProps) => {
   const [loading, setLoading] = useState(false);
-  const [roadmapData, setRoadmapData] = useState<RoadmapOutput | null>(null);
-  const [currentSkills, setCurrentSkills] = useState('');
-  const [targetRole, setTargetRole] = useState('');
   const { toast } = useToast();
+
+  const { roadmapData, currentSkills, targetRole } = state;
 
   const handleGenerateRoadmap = async () => {
     if (!currentSkills.trim() || !targetRole.trim()) {
@@ -47,7 +50,7 @@ const LearningRoadmapTab = () => {
 
     const skills = currentSkills.split(',').map(s => s.trim()).filter(s => s);
     setLoading(true);
-    setRoadmapData(null);
+    setState(prev => ({ ...prev, roadmapData: null }));
 
     try {
       const response = await fetch(WEBHOOK_URL, {
@@ -60,26 +63,26 @@ const LearningRoadmapTab = () => {
 
       const data = await response.json();
 
-      // --- UPDATED DATA HANDLING ---
-      // Fix: Check for the 'json' wrapper from n8n's 'Respond to Webhook' node
       if (Array.isArray(data) && data.length > 0 && data[0].json && data[0].json.output) {
         const normalizedOutput = data[0].json.output as RoadmapOutput;
-
-        // No re-normalization needed! The n8n node already did the work.
-        // We just set the data directly.
-        setRoadmapData(normalizedOutput);
-
+        setState(prev => ({ ...prev, roadmapData: normalizedOutput }));
         toast({ title: "Learning Roadmap Generated", description: "Successfully received roadmap from n8n." });
       } else {
-        // Updated error message to be more accurate
         throw new Error("Invalid response format from webhook. Expected [{ json: { output: { ... } } }]");
       }
-      // --- END OF UPDATED DATA HANDLING ---
 
     } catch (error: any) {
       console.error(error);
       toast({ title: "Error", description: `Failed to generate roadmap: ${error.message}`, variant: "destructive" });
     } finally { setLoading(false); }
+  };
+
+  const handleCurrentSkillsChange = (value: string) => {
+    setState(prev => ({ ...prev, currentSkills: value }));
+  };
+
+  const handleTargetRoleChange = (value: string) => {
+    setState(prev => ({ ...prev, targetRole: value }));
   };
 
   return (
@@ -93,11 +96,11 @@ const LearningRoadmapTab = () => {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Current Skills</label>
-              <Input placeholder="Python, DSA, Machine Learning" value={currentSkills} onChange={(e) => setCurrentSkills(e.target.value)} />
+              <Input placeholder="Python, DSA, Machine Learning" value={currentSkills} onChange={(e) => handleCurrentSkillsChange(e.target.value)} />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Target Role</label>
-              <Input placeholder="Software Development Engineer" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
+              <Input placeholder="Software Development Engineer" value={targetRole} onChange={(e) => handleTargetRoleChange(e.target.value)} />
             </div>
           </div>
           <Button onClick={handleGenerateRoadmap} disabled={loading} className="bg-student-gradient w-full md:w-auto">
@@ -111,7 +114,7 @@ const LearningRoadmapTab = () => {
           <CardHeader>
             <CardTitle>Your Learning Roadmap</CardTitle>
             <CardDescription>{roadmapData.overview}</CardDescription>
-          </CardHeader> {/* <-- Fixed the typo here */}
+          </CardHeader>
           <CardContent className="space-y-6">
             <div className="p-4 bg-secondary/50 rounded-lg">
               <h3 className="text-lg font-semibold mb-2 flex items-center">
@@ -121,21 +124,19 @@ const LearningRoadmapTab = () => {
             </div>
 
             <Accordion type="single" collapsible className="w-full" defaultValue="phase-0">
-              {/* Add safety check for roadmap array */
-              Array.isArray(roadmapData.roadmap) && roadmapData.roadmap.map((phase, phaseIndex) => (
+              {Array.isArray(roadmapData.roadmap) && roadmapData.roadmap.map((phase: RoadmapPhase, phaseIndex: number) => (
                 <AccordionItem value={`phase-${phaseIndex}`} key={phaseIndex}>
                   <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4 items-center">
                       <span className="text-lg font-medium text-left">{phase.phase}</span>
-                      <Badge variant="outline" className="ml-4 whitespace-nowGrap">{phase.expected_duration}</Badge>
+                      <Badge variant="outline" className="ml-4 whitespace-nowrap">{phase.expected_duration}</Badge>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4 space-y-6">
                     <div className="space-y-3">
                       <h4 className="font-semibold text-base flex items-center"><FaListUl className="h-4 w-4 mr-2 text-primary" /> Focus Areas</h4>
                       <ul className="list-disc list-inside pl-4 text-sm space-y-3 text-muted-foreground">
-                        {/* Add safety check for focus_areas array */
-                        Array.isArray(phase.focus_areas) && phase.focus_areas.length > 0 ? (
+                        {Array.isArray(phase.focus_areas) && phase.focus_areas.length > 0 ? (
                           phase.focus_areas.map((fa, i) => <li key={i}>{fa.name}</li>)
                         ) : (
                           <p className="text-sm text-muted-foreground/70 list-none">No focus areas listed.</p>
@@ -143,14 +144,11 @@ const LearningRoadmapTab = () => {
                       </ul>
                     </div>
                     
-                    {/* --- UPDATED RESOURCES SECTION --- */}
                     <div className="space-y-4">
                       <h4 className="font-semibold text-base flex items-center"><FaBook className="h-4 w-4 mr-2 text-primary" /> Recommended Resources</h4>
                       <ul className="list-disc list-inside pl-4 text-sm space-y-2 text-muted-foreground">
-                        {/* Add safety check for recommended_resources array */
-                        Array.isArray(phase.recommended_resources) && phase.recommended_resources.length > 0 ? (
+                        {Array.isArray(phase.recommended_resources) && phase.recommended_resources.length > 0 ? (
                           phase.recommended_resources.map((r, i) => (
-                            // Changed: Render as simple text, not a link
                             <li key={i}>
                               {r.name}
                             </li>
@@ -160,7 +158,6 @@ const LearningRoadmapTab = () => {
                         )}
                       </ul>
                     </div>
-                    {/* --- END OF UPDATED SECTION --- */}
 
                   </AccordionContent>
                 </AccordionItem>
@@ -175,12 +172,3 @@ const LearningRoadmapTab = () => {
 };
 
 export default LearningRoadmapTab;
-
-
-
-
-
-
-
-
-

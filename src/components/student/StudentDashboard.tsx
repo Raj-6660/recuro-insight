@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import SkillAnalysisTab from './SkillAnalysisTab';
@@ -8,8 +7,40 @@ import ResumeUploadTab from './ResumeUploadTab';
 import LearningRoadmapTab from './LearningRoadmapTab';
 import { FaUserGraduate, FaSignOutAlt, FaChartBar, FaRoad, FaGraduationCap } from 'react-icons/fa';
 
+// Types for persisted state
+export interface SkillAnalysisState {
+  candidates: any[];
+  selectedFile: File | null;
+}
+
+export interface ResumeUploadState {
+  selectedFile: File | null;
+}
+
+export interface LearningRoadmapState {
+  roadmapData: any | null;
+  currentSkills: string;
+  targetRole: string;
+}
+
 const StudentDashboard = () => {
   const { profile, logout } = useAuth();
+
+  // Lifted state for each tab
+  const [skillAnalysisState, setSkillAnalysisState] = useState<SkillAnalysisState>({
+    candidates: [],
+    selectedFile: null,
+  });
+
+  const [resumeUploadState, setResumeUploadState] = useState<ResumeUploadState>({
+    selectedFile: null,
+  });
+
+  const [learningRoadmapState, setLearningRoadmapState] = useState<LearningRoadmapState>({
+    roadmapData: null,
+    currentSkills: '',
+    targetRole: '',
+  });
 
   return (
     <div className="min-h-screen bg-dark-gradient">
@@ -60,15 +91,24 @@ const StudentDashboard = () => {
           </TabsList>
 
           <TabsContent value="skills">
-            <SkillAnalysisTab />
+            <SkillAnalysisTab 
+              state={skillAnalysisState} 
+              setState={setSkillAnalysisState} 
+            />
           </TabsContent>
 
           <TabsContent value="resume">
-            <ResumeUploadTab />
+            <ResumeUploadTab 
+              state={resumeUploadState} 
+              setState={setResumeUploadState} 
+            />
           </TabsContent>
 
           <TabsContent value="learning">
-            <LearningRoadmapTab />
+            <LearningRoadmapTab 
+              state={learningRoadmapState} 
+              setState={setLearningRoadmapState} 
+            />
           </TabsContent>
         </Tabs>
       </main>

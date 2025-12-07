@@ -3,19 +3,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { FaUpload, FaDownload, FaFileAlt } from 'react-icons/fa';
+import { SkillAnalysisState } from './StudentDashboard';
 
 // Developer Configuration: Set your n8n webhook URL here
 const WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/af6bd38f-6e02-4bae-8842-1c447025ab64';
 
-const SkillAnalysisTab = () => {
+interface SkillAnalysisTabProps {
+  state: SkillAnalysisState;
+  setState: React.Dispatch<React.SetStateAction<SkillAnalysisState>>;
+}
+
+const SkillAnalysisTab = ({ state, setState }: SkillAnalysisTabProps) => {
   const [loading, setLoading] = useState(false);
-  const [candidates, setCandidates] = useState<any[]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
+
+  const { candidates, selectedFile } = state;
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -27,7 +31,7 @@ const SkillAnalysisTab = () => {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       ];
       if (allowedTypes.includes(file.type)) {
-        setSelectedFile(file);
+        setState(prev => ({ ...prev, selectedFile: file }));
       } else {
         toast({
           title: "Invalid file type",
@@ -66,7 +70,7 @@ const SkillAnalysisTab = () => {
       const result = await response.json();
 
       if (result.candidates && Array.isArray(result.candidates)) {
-        setCandidates(result.candidates);
+        setState(prev => ({ ...prev, candidates: result.candidates }));
         toast({
           title: "Analysis Complete",
           description: "Candidate skill analysis received successfully.",
