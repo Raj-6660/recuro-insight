@@ -4,14 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { FaUpload, FaFilePdf } from 'react-icons/fa';
+import { ResumeUploadState } from './StudentDashboard';
 
 // Developer Configuration: Set your n8n webhook URL here
 const WEBHOOK_URL = 'https://ghostyy.app.n8n.cloud/webhook/0cb6fa0e-6484-4892-a5eb-044073f34004';
 
-const ResumeUploadTab = () => {
+interface ResumeUploadTabProps {
+  state: ResumeUploadState;
+  setState: React.Dispatch<React.SetStateAction<ResumeUploadState>>;
+}
+
+const ResumeUploadTab = ({ state, setState }: ResumeUploadTabProps) => {
   const [loading, setLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
+
+  const { selectedFile } = state;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -24,7 +31,7 @@ const ResumeUploadTab = () => {
         });
         return;
       }
-      setSelectedFile(file);
+      setState(prev => ({ ...prev, selectedFile: file }));
     }
   };
 
@@ -58,7 +65,7 @@ const ResumeUploadTab = () => {
         title: 'Resume uploaded successfully!',
         description: "Your resume has been sent for processing. We'll match you with suitable roles.",
       });
-      setSelectedFile(null);
+      setState(prev => ({ ...prev, selectedFile: null }));
     } catch (error) {
       console.error('Error uploading resume:', error);
       toast({
